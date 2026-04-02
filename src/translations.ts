@@ -150,13 +150,11 @@ export const translations = {
       dateOrderInvalid: "A data de início não pode ser depois da data de término. Ajuste uma das duas.",
       editAfterPublishTitle: "Edição limitada",
       editAfterPublishIntro:
-        "Depois de criar, só é possível alterar as datas de vigência e o limite de cupons (QR). Título, descrição, imagem, categorias, tipo de promoção e publicar ou pausar ficam fixos.",
+        "Depois de criar, você pode alterar as datas de vigência, o limite de cupons (QR) e publicar ou pausar na página inicial. Título, descrição, imagem, categorias e tipo de promoção ficam fixos.",
       editAfterPublishBullets: [
-        "Editável: data de início, data de fim e limite máximo de cupons (ou remover o limite).",
+        "Editável: datas, limite de cupons (ou remover o limite) e publicar ou pausar.",
         "Não editável: os demais campos, para manter a mesma promessa para quem já gerou cupom."
-      ],
-      visibilityReadOnlyLabel: "Publicação no site (somente leitura)",
-      visibilityReadOnlyHint: "Para mudar publicar ou pausar, crie outra oferta."
+      ]
     },
     categories: {
       bar: "Bar",
@@ -389,13 +387,11 @@ export const translations = {
       dateOrderInvalid: "The start date cannot be after the end date. Adjust one of them.",
       editAfterPublishTitle: "Limited editing",
       editAfterPublishIntro:
-        "After creation, only validity dates and max coupons (QR) can be changed. Title, description, image, categories, promotion type, and publish/pause stay fixed.",
+        "After creation, you can change validity dates, max coupons (QR), and publish or pause on the home listing. Title, description, image, categories, and promotion type stay fixed.",
       editAfterPublishBullets: [
-        "Editable: start date, end date, and max coupons (or remove the limit).",
+        "Editable: dates, max coupons (or remove the limit), and publish or pause.",
         "Not editable: everything else, to keep the same promise for people who already claimed."
-      ],
-      visibilityReadOnlyLabel: "On-site visibility (read-only)",
-      visibilityReadOnlyHint: "To change publish vs pause, create a new offer."
+      ]
     },
     categories: {
       bar: "Bar",
@@ -629,13 +625,11 @@ export const translations = {
       dateOrderInvalid: "La fecha de inicio no puede ser posterior a la fecha de fin. Corrige una de las dos.",
       editAfterPublishTitle: "Edición limitada",
       editAfterPublishIntro:
-        "Tras crear, solo puedes cambiar las fechas de vigencia y el máximo de cupones (QR). Título, descripción, imagen, categorías, tipo de promoción y publicar o pausar quedan fijos.",
+        "Tras crear, puedes cambiar las fechas de vigencia, el máximo de cupones (QR) y publicar o pausar en la página principal. Título, descripción, imagen, categorías y tipo de promoción quedan fijos.",
       editAfterPublishBullets: [
-        "Editable: fecha de inicio, fecha de fin y máximo de cupones (o quitar el límite).",
+        "Editable: fechas, máximo de cupones (o quitar el límite) y publicar o pausar.",
         "No editable: el resto, para mantener la misma promesa a quien ya sacó cupón."
-      ],
-      visibilityReadOnlyLabel: "Visibilidad en el sitio (solo lectura)",
-      visibilityReadOnlyHint: "Para cambiar publicar o pausar, crea otra oferta."
+      ]
     },
     categories: {
       bar: "Bar",

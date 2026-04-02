@@ -370,12 +370,14 @@ const AdminPanel = ({
 
         const hadLimit = prev.maxCoupons != null && prev.maxCoupons >= 5;
         const hasLimitNow = mc != null && mc >= 5;
+        const wantPublished = newOffer.isActive !== false;
 
         if (hadLimit && !hasLimitNow) {
           await updateOffer(editingId, {
             validFrom: vf,
             validUntil: vu,
-            removeCouponLimit: true
+            removeCouponLimit: true,
+            isActive: wantPublished
           } as OfferUpdateInput);
         } else if (!hadLimit && hasLimitNow) {
           const cnt = await countCouponsForOffer(editingId);
@@ -384,7 +386,7 @@ const AdminPanel = ({
             validUntil: vu,
             maxCoupons: mc,
             syncCouponsIssued: cnt,
-            isActive: cnt >= (mc as number) ? false : prev.isActive
+            isActive: cnt >= (mc as number) ? false : wantPublished
           } as OfferUpdateInput);
         } else {
           const prevIssued = prev.couponsIssued ?? 0;
@@ -397,15 +399,10 @@ const AdminPanel = ({
             if (prevIssued >= mc) {
               patch.isActive = false;
             } else {
-              const wasAtCap =
-                hadLimit &&
-                prev.maxCoupons != null &&
-                prev.maxCoupons >= 5 &&
-                prevIssued >= prev.maxCoupons;
-              patch.isActive = wasAtCap ? true : prev.isActive;
+              patch.isActive = wantPublished;
             }
           } else {
-            patch.isActive = prev.isActive;
+            patch.isActive = wantPublished;
           }
           await updateOffer(editingId, patch);
         }
@@ -590,55 +587,45 @@ const AdminPanel = ({
             </div>
           ) : null}
 
-          {editingId ? (
-            <div className="mb-6 rounded-xl border border-gray-200 bg-gray-50/90 p-4">
-              <p className="text-sm font-semibold text-gray-900">{t.visibilityReadOnlyLabel}</p>
-              <p className="mt-2 text-sm text-gray-800">
-                <span className="font-medium">{newOffer.isActive !== false ? t.statusActive : t.statusInactive}</span>
-                <span className="text-gray-600">. {t.visibilityReadOnlyHint}</span>
-              </p>
+          <fieldset className="mb-6 rounded-xl border border-sea-100 bg-sea-50/40 p-4">
+            <legend className="text-sm font-semibold text-sea-900 px-1">{t.visibilityHeading}</legend>
+            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:gap-4">
+              <label
+                className={`flex-1 cursor-pointer rounded-lg border-2 p-4 transition-colors ${
+                  newOffer.isActive !== false
+                    ? 'border-sea-600 bg-white shadow-sm'
+                    : 'border-gray-200 bg-white hover:border-gray-300'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="offerVisibility"
+                  className="sr-only"
+                  checked={newOffer.isActive !== false}
+                  onChange={() => setNewOffer({ ...newOffer, isActive: true })}
+                />
+                <span className="block font-medium text-gray-900">{t.visibilityPublishedTitle}</span>
+                <span className="mt-1 block text-xs text-gray-600">{t.visibilityPublishedDesc}</span>
+              </label>
+              <label
+                className={`flex-1 cursor-pointer rounded-lg border-2 p-4 transition-colors ${
+                  newOffer.isActive === false
+                    ? 'border-amber-500 bg-amber-50/60 shadow-sm'
+                    : 'border-gray-200 bg-white hover:border-gray-300'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="offerVisibility"
+                  className="sr-only"
+                  checked={newOffer.isActive === false}
+                  onChange={() => setNewOffer({ ...newOffer, isActive: false })}
+                />
+                <span className="block font-medium text-gray-900">{t.visibilityPausedTitle}</span>
+                <span className="mt-1 block text-xs text-gray-600">{t.visibilityPausedDesc}</span>
+              </label>
             </div>
-          ) : (
-            <fieldset className="mb-6 rounded-xl border border-sea-100 bg-sea-50/40 p-4">
-              <legend className="text-sm font-semibold text-sea-900 px-1">{t.visibilityHeading}</legend>
-              <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:gap-4">
-                <label
-                  className={`flex-1 cursor-pointer rounded-lg border-2 p-4 transition-colors ${
-                    newOffer.isActive !== false
-                      ? 'border-sea-600 bg-white shadow-sm'
-                      : 'border-gray-200 bg-white hover:border-gray-300'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="offerVisibility"
-                    className="sr-only"
-                    checked={newOffer.isActive !== false}
-                    onChange={() => setNewOffer({ ...newOffer, isActive: true })}
-                  />
-                  <span className="block font-medium text-gray-900">{t.visibilityPublishedTitle}</span>
-                  <span className="mt-1 block text-xs text-gray-600">{t.visibilityPublishedDesc}</span>
-                </label>
-                <label
-                  className={`flex-1 cursor-pointer rounded-lg border-2 p-4 transition-colors ${
-                    newOffer.isActive === false
-                      ? 'border-amber-500 bg-amber-50/60 shadow-sm'
-                      : 'border-gray-200 bg-white hover:border-gray-300'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="offerVisibility"
-                    className="sr-only"
-                    checked={newOffer.isActive === false}
-                    onChange={() => setNewOffer({ ...newOffer, isActive: false })}
-                  />
-                  <span className="block font-medium text-gray-900">{t.visibilityPausedTitle}</span>
-                  <span className="mt-1 block text-xs text-gray-600">{t.visibilityPausedDesc}</span>
-                </label>
-              </div>
-            </fieldset>
-          )}
+          </fieldset>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <input
