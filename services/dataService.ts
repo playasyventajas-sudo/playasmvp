@@ -360,11 +360,31 @@ function omitUndefined<T extends Record<string, unknown>>(obj: T): Record<string
   return out;
 }
 
+/** Após criar a oferta, só vigência e limite de cupons (e isActive derivado disso) podem ser alterados pelo painel. */
+const OFFER_UPDATE_ALLOWED: (keyof Offer)[] = [
+  "validFrom",
+  "validUntil",
+  "maxCoupons",
+  "isActive",
+  "couponsIssued"
+];
+
+function pickAllowedOfferPatch(patch: Partial<Offer>): Partial<Offer> {
+  const out: Partial<Offer> = {};
+  for (const key of OFFER_UPDATE_ALLOWED) {
+    if (patch[key] !== undefined) {
+      (out as Record<string, unknown>)[key as string] = patch[key];
+    }
+  }
+  return out;
+}
+
 export const updateOffer = async (id: string, offer: OfferUpdateInput): Promise<void> => {
   const { removeCouponLimit, syncCouponsIssued, ...raw } = offer;
   let patch: Partial<Offer> = stripOfferInternalFields(raw);
   /** Desconto/tipo de promo é fixo após criar a oferta; nunca persistir alterações via update. */
   delete patch.discount;
+  patch = pickAllowedOfferPatch(patch);
   if (syncCouponsIssued != null) {
     patch = { ...patch, couponsIssued: syncCouponsIssued };
   }

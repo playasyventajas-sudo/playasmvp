@@ -148,14 +148,15 @@ export const translations = {
       visibilityPausedDesc: "Não aparece na lista pública. Você pode voltar a publicar quando quiser.",
       dateBothRequired: "Preencha a data de início e a data de término da oferta.",
       dateOrderInvalid: "A data de início não pode ser depois da data de término. Ajuste uma das duas.",
-      editAfterPublishTitle: "Oferta já criada: o que pode editar",
+      editAfterPublishTitle: "Edição limitada (igual ao padrão de mercado)",
       editAfterPublishIntro:
-        "O tipo de promoção (campo de desconto) fica fixo para proteger quem já gerou cupom. O restante você pode ajustar conforme a operação:",
+        "Depois de criar, só é possível alterar as datas de vigência e o limite de cupons (QR). Título, descrição, imagem, categorias, tipo de promoção e publicar ou pausar ficam fixos.",
       editAfterPublishBullets: [
-        "Bloqueado: alterar o tipo de benefício (%, 2x1, etc.), pois já está gravado no cupom.",
-        "Permitido: publicar ou pausar, título, descrição, imagem, categorias, datas de vigência e limite de cupons (QR).",
-        "Boa prática: evite piorar a condição para quem já tem cupom; em dúvida, estenda o prazo ou aumente o benefício."
-      ]
+        "Editável: data de início, data de fim e limite máximo de cupons (ou remover o limite).",
+        "Não editável: os demais campos, para manter a mesma promessa para quem já gerou cupom."
+      ],
+      visibilityReadOnlyLabel: "Publicação no site (somente leitura)",
+      visibilityReadOnlyHint: "Para mudar publicar ou pausar, crie outra oferta."
     },
     categories: {
       bar: "Bar",
@@ -386,14 +387,15 @@ export const translations = {
       visibilityPausedDesc: "Hidden from the public list. You can publish again anytime.",
       dateBothRequired: "Please set both the start date and the end date of the offer.",
       dateOrderInvalid: "The start date cannot be after the end date. Adjust one of them.",
-      editAfterPublishTitle: "Published offer: what you can change",
+      editAfterPublishTitle: "Limited editing (market-style)",
       editAfterPublishIntro:
-        "The promotion type (discount field) stays fixed to protect people who already claimed a coupon. You can still adjust:",
+        "After creation, only validity dates and max coupons (QR) can be changed. Title, description, image, categories, promotion type, and publish/pause stay fixed.",
       editAfterPublishBullets: [
-        "Locked: changing the benefit type (%, 2-for-1, etc.) because it is tied to issued coupons.",
-        "Allowed: publish or pause, title, description, image, categories, validity dates, and max coupons (QR).",
-        "Good practice: avoid making the deal worse for existing coupon holders; when unsure, extend dates or improve the benefit."
-      ]
+        "Editable: start date, end date, and max coupons (or remove the limit).",
+        "Not editable: everything else, to keep the same promise for people who already claimed."
+      ],
+      visibilityReadOnlyLabel: "On-site visibility (read-only)",
+      visibilityReadOnlyHint: "To change publish vs pause, create a new offer."
     },
     categories: {
       bar: "Bar",
@@ -625,14 +627,15 @@ export const translations = {
       visibilityPausedDesc: "No aparece en la lista pública. Puedes volver a publicar cuando quieras.",
       dateBothRequired: "Completa la fecha de inicio y la fecha de fin de la oferta.",
       dateOrderInvalid: "La fecha de inicio no puede ser posterior a la fecha de fin. Corrige una de las dos.",
-      editAfterPublishTitle: "Oferta ya creada: qué puedes cambiar",
+      editAfterPublishTitle: "Edición limitada (como en el mercado)",
       editAfterPublishIntro:
-        "El tipo de promoción (campo de descuento) queda fijo para proteger a quien ya sacó cupón. Lo demás puedes ajustarlo:",
+        "Tras crear, solo puedes cambiar las fechas de vigencia y el máximo de cupones (QR). Título, descripción, imagen, categorías, tipo de promoción y publicar o pausar quedan fijos.",
       editAfterPublishBullets: [
-        "Bloqueado: cambiar el tipo de beneficio (%, 2x1, etc.) porque queda vinculado al cupón emitido.",
-        "Permitido: publicar o pausar, título, descripción, imagen, categorías, fechas de vigencia y máximo de cupones (QR).",
-        "Buena práctica: evita empeorar la condición para quien ya tiene cupón; si dudas, alarga el plazo o mejora el beneficio."
-      ]
+        "Editable: fecha de inicio, fecha de fin y máximo de cupones (o quitar el límite).",
+        "No editable: el resto, para mantener la misma promesa a quien ya sacó cupón."
+      ],
+      visibilityReadOnlyLabel: "Visibilidad en el sitio (solo lectura)",
+      visibilityReadOnlyHint: "Para cambiar publicar o pausar, crea otra oferta."
     },
     categories: {
       bar: "Bar",

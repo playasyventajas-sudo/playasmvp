@@ -330,7 +330,9 @@ const AdminPanel = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newOffer.title || !newOffer.discount) return;
+    if (!editingId) {
+      if (!newOffer.title?.trim() || !newOffer.discount?.trim()) return;
+    }
 
     const mc = newOffer.maxCoupons;
     if (mc != null && (!Number.isInteger(mc) || mc < 5)) {
@@ -360,40 +362,52 @@ const AdminPanel = ({
     }
 
     offerData.merchantName = user.companyName;
-    if (editingId) {
-      const prev = offers.find((o) => o.id === editingId);
-      if (prev) offerData.discount = prev.discount;
-    }
 
     try {
       if (editingId) {
         const prev = offers.find((o) => o.id === editingId);
-        const hadLimit = prev != null && prev.maxCoupons != null && prev.maxCoupons >= 5;
+        if (!prev) return;
+
+        const hadLimit = prev.maxCoupons != null && prev.maxCoupons >= 5;
         const hasLimitNow = mc != null && mc >= 5;
 
         if (hadLimit && !hasLimitNow) {
-          await updateOffer(editingId, { ...offerData, removeCouponLimit: true } as OfferUpdateInput);
+          await updateOffer(editingId, {
+            validFrom: vf,
+            validUntil: vu,
+            removeCouponLimit: true
+          } as OfferUpdateInput);
         } else if (!hadLimit && hasLimitNow) {
           const cnt = await countCouponsForOffer(editingId);
           await updateOffer(editingId, {
-            ...offerData,
+            validFrom: vf,
+            validUntil: vu,
             maxCoupons: mc,
             syncCouponsIssued: cnt,
-            isActive: cnt < (mc as number)
+            isActive: cnt >= (mc as number) ? false : prev.isActive
           } as OfferUpdateInput);
         } else {
-          const prevIssued = prev?.couponsIssued ?? 0;
-          const finalPatch = { ...offerData } as OfferUpdateInput;
+          const prevIssued = prev.couponsIssued ?? 0;
+          const patch: OfferUpdateInput = {
+            validFrom: vf,
+            validUntil: vu
+          };
           if (hasLimitNow && mc != null) {
+            patch.maxCoupons = mc;
             if (prevIssued >= mc) {
-              finalPatch.isActive = false;
+              patch.isActive = false;
             } else {
-              finalPatch.isActive = newOffer.isActive !== false;
+              const wasAtCap =
+                hadLimit &&
+                prev.maxCoupons != null &&
+                prev.maxCoupons >= 5 &&
+                prevIssued >= prev.maxCoupons;
+              patch.isActive = wasAtCap ? true : prev.isActive;
             }
           } else {
-            finalPatch.isActive = newOffer.isActive !== false;
+            patch.isActive = prev.isActive;
           }
-          await updateOffer(editingId, finalPatch);
+          await updateOffer(editingId, patch);
         }
       } else {
         await createOffer(offerData as Omit<Offer, "id">, user.uid);
@@ -454,6 +468,7 @@ const AdminPanel = ({
   };
 
   const toggleCategory = (cat: Category) => {
+    if (editingId) return;
     setNewOffer(prev => {
       const cats = prev.categories || [];
       if (cats.includes(cat)) {
@@ -575,48 +590,66 @@ const AdminPanel = ({
             </div>
           ) : null}
 
-          <fieldset className="mb-6 rounded-xl border border-sea-100 bg-sea-50/40 p-4">
-            <legend className="text-sm font-semibold text-sea-900 px-1">{t.visibilityHeading}</legend>
-            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:gap-4">
-              <label
-                className={`flex-1 cursor-pointer rounded-lg border-2 p-4 transition-colors ${
-                  newOffer.isActive !== false
-                    ? 'border-sea-600 bg-white shadow-sm'
-                    : 'border-gray-200 bg-white hover:border-gray-300'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="offerVisibility"
-                  className="sr-only"
-                  checked={newOffer.isActive !== false}
-                  onChange={() => setNewOffer({ ...newOffer, isActive: true })}
-                />
-                <span className="block font-medium text-gray-900">{t.visibilityPublishedTitle}</span>
-                <span className="mt-1 block text-xs text-gray-600">{t.visibilityPublishedDesc}</span>
-              </label>
-              <label
-                className={`flex-1 cursor-pointer rounded-lg border-2 p-4 transition-colors ${
-                  newOffer.isActive === false
-                    ? 'border-amber-500 bg-amber-50/60 shadow-sm'
-                    : 'border-gray-200 bg-white hover:border-gray-300'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="offerVisibility"
-                  className="sr-only"
-                  checked={newOffer.isActive === false}
-                  onChange={() => setNewOffer({ ...newOffer, isActive: false })}
-                />
-                <span className="block font-medium text-gray-900">{t.visibilityPausedTitle}</span>
-                <span className="mt-1 block text-xs text-gray-600">{t.visibilityPausedDesc}</span>
-              </label>
+          {editingId ? (
+            <div className="mb-6 rounded-xl border border-gray-200 bg-gray-50/90 p-4">
+              <p className="text-sm font-semibold text-gray-900">{t.visibilityReadOnlyLabel}</p>
+              <p className="mt-2 text-sm text-gray-800">
+                <span className="font-medium">{newOffer.isActive !== false ? t.statusActive : t.statusInactive}</span>
+                <span className="text-gray-600">. {t.visibilityReadOnlyHint}</span>
+              </p>
             </div>
-          </fieldset>
+          ) : (
+            <fieldset className="mb-6 rounded-xl border border-sea-100 bg-sea-50/40 p-4">
+              <legend className="text-sm font-semibold text-sea-900 px-1">{t.visibilityHeading}</legend>
+              <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:gap-4">
+                <label
+                  className={`flex-1 cursor-pointer rounded-lg border-2 p-4 transition-colors ${
+                    newOffer.isActive !== false
+                      ? 'border-sea-600 bg-white shadow-sm'
+                      : 'border-gray-200 bg-white hover:border-gray-300'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="offerVisibility"
+                    className="sr-only"
+                    checked={newOffer.isActive !== false}
+                    onChange={() => setNewOffer({ ...newOffer, isActive: true })}
+                  />
+                  <span className="block font-medium text-gray-900">{t.visibilityPublishedTitle}</span>
+                  <span className="mt-1 block text-xs text-gray-600">{t.visibilityPublishedDesc}</span>
+                </label>
+                <label
+                  className={`flex-1 cursor-pointer rounded-lg border-2 p-4 transition-colors ${
+                    newOffer.isActive === false
+                      ? 'border-amber-500 bg-amber-50/60 shadow-sm'
+                      : 'border-gray-200 bg-white hover:border-gray-300'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="offerVisibility"
+                    className="sr-only"
+                    checked={newOffer.isActive === false}
+                    onChange={() => setNewOffer({ ...newOffer, isActive: false })}
+                  />
+                  <span className="block font-medium text-gray-900">{t.visibilityPausedTitle}</span>
+                  <span className="mt-1 block text-xs text-gray-600">{t.visibilityPausedDesc}</span>
+                </label>
+              </div>
+            </fieldset>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input placeholder={t.placeholders.title} className="border p-2 rounded" value={newOffer.title} onChange={e => setNewOffer({...newOffer, title: e.target.value})} required />
+            <input
+              placeholder={t.placeholders.title}
+              className={`border p-2 rounded ${editingId ? 'bg-gray-100 text-gray-700 cursor-not-allowed' : ''}`}
+              value={newOffer.title}
+              onChange={(e) => setNewOffer({ ...newOffer, title: e.target.value })}
+              required={!editingId}
+              disabled={!!editingId}
+              readOnly={!!editingId}
+            />
             <div className="flex flex-col">
               <input
                 placeholder={t.placeholders.discount}
@@ -659,12 +692,20 @@ const AdminPanel = ({
 
             <div className="flex flex-col md:col-span-2">
               <label className="text-xs text-gray-500 mb-1 ml-1">{t.placeholders.uploadImage}</label>
-              <input type="file" accept="image/*" onChange={handleImageUpload} className="border p-2 rounded text-sm max-w-lg" />
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                disabled={!!editingId}
+                className={`border p-2 rounded text-sm max-w-lg ${editingId ? 'opacity-50 cursor-not-allowed' : ''}`}
+              />
               {isUploading && <span className="text-xs text-sea-600 animate-pulse mt-1">{t.uploading}</span>}
               {newOffer.imageUrl && !isUploading && (
                 <div className="mt-2 relative w-20 h-20">
                   <img src={safeImageUrl(newOffer.imageUrl) || ''} alt="Preview" className="w-full h-full object-cover rounded border border-gray-200" />
-                  <button type="button" onClick={() => setNewOffer(prev => ({...prev, imageUrl: ''}))} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow">×</button>
+                  {!editingId && (
+                    <button type="button" onClick={() => setNewOffer(prev => ({ ...prev, imageUrl: '' }))} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow">×</button>
+                  )}
                 </div>
               )}
             </div>
@@ -704,17 +745,18 @@ const AdminPanel = ({
 
             <div className="md:col-span-2">
               <label className="text-xs text-gray-500 mb-1 ml-1">{t.placeholders.categories}</label>
-              <div className="flex flex-wrap gap-2 mt-1">
+              <div className={`flex flex-wrap gap-2 mt-1 ${editingId ? 'opacity-80' : ''}`}>
                 {categoriesList.map(cat => (
                   <button
                     key={cat}
                     type="button"
                     onClick={() => toggleCategory(cat)}
+                    disabled={!!editingId}
                     className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
                       (newOffer.categories || []).includes(cat)
                         ? 'bg-sea-100 text-sea-700 border-sea-200'
                         : 'bg-white text-gray-500 border-gray-200 hover:border-sea-200'
-                    }`}
+                    } ${editingId ? 'cursor-not-allowed opacity-90' : ''}`}
                   >
                     {tCats[cat]}
                   </button>
@@ -722,7 +764,15 @@ const AdminPanel = ({
               </div>
             </div>
 
-            <textarea placeholder={t.placeholders.desc} className="border p-2 rounded md:col-span-2" rows={3} value={newOffer.description} onChange={e => setNewOffer({...newOffer, description: e.target.value})} />
+            <textarea
+              placeholder={t.placeholders.desc}
+              className={`border p-2 rounded md:col-span-2 ${editingId ? 'bg-gray-100 text-gray-700 cursor-not-allowed' : ''}`}
+              rows={3}
+              value={newOffer.description}
+              onChange={(e) => setNewOffer({ ...newOffer, description: e.target.value })}
+              disabled={!!editingId}
+              readOnly={!!editingId}
+            />
           </div>
           <button type="submit" disabled={isUploading} className={`mt-4 px-6 py-2 rounded-lg font-bold text-white ${isUploading ? 'bg-gray-400 cursor-not-allowed' : 'bg-sand-500 hover:bg-sand-400'}`}>{t.save}</button>
         </form>
