@@ -17,6 +17,9 @@ export interface Offer {
   validUntil: string;
   merchantName: string;
   discount: string;
+  /** Intenção do comerciante: publicar quando a vigência permitir (pausar = false). */
+  publishIntent: boolean;
+  /** Efetivo para vitrine/cupom: vigência + pausa + limite de cupons. */
   isActive: boolean;
   categories: Category[];
   /** UID Firebase Auth do comerciante dono da oferta (obrigatório em novos documentos) */

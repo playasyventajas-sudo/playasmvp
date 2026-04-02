@@ -20,7 +20,7 @@ O **Playas e Ventajas** é uma aplicação web progressiva (PWA) desenvolvida pa
 - **Estilização:** Tailwind CSS (com animações e design responsivo).
 - **Ícones:** Lucide React (via componentes SVG otimizados).
 - **Backend (Híbrido):**
-  - **Modo Demo:** Dados locais (mock) para testes rápidos sem configuração.
+  - **Modo Demo:** Dados locais (mock) sem Firebase; por padrão **sem ofertas/cupons de exemplo** no código.
   - **Modo Produção:** Integração completa com **Firebase** (Auth, Firestore, Storage).
 
 ## 3. Estrutura de Arquivos Importantes
@@ -204,6 +204,14 @@ No terminal do seu editor (Cursor/VS Code), na pasta do projeto:
    Isso publica `firestore.rules`, `storage.rules` e a pasta `dist` no Hosting.
 
 Se o projeto ainda não tiver Hosting inicializado no `firebase.json`, use `firebase init` uma vez e escolha Hosting, Firestore e Storage; este repositório já traz `firebase.json` e `.firebaserc` configurados.
+
+### Limpeza do Firestore antes da entrega ao cliente
+
+O app **não** permite que um usuário apague ofertas ou cupons de outras contas (regras de segurança). Para deixar só os dados da conta que vai ficar com o projeto:
+
+1. **Console do Firebase:** Firestore → revise `offers`, `coupons` e `couponLocks` e exclua manualmente o que for de teste ou de outro dono.
+2. **Script local (conta de serviço):** com uma chave JSON de serviço e a variável `KEEP_OWNER_UID` (UID em Authentication da conta a manter), rode `npm run cleanup:firestore`. Detalhes e dry-run estão em `scripts/firestore-delete-non-owner.mjs`. Não versione a chave; `serviceAccountKey.json` na raiz está no `.gitignore`.
+3. **Só ofertas de teste `[TESTE]` / `QA Playas (demo)`:** `npm run cleanup:qa` (mesma credencial; apaga ofertas/cupons/locks de demonstração — veja `scripts/delete-qa-test-data.mjs`). Use `DRY_RUN=1` antes para listar.
 
 ---
 

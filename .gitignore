@@ -12,6 +12,12 @@ dist
 dist-ssr
 *.local
 
+# Chave de conta de serviço (scripts de manutenção Firestore — nunca commitar)
+serviceAccountKey.json
+
+# Cursor / IDE local
+.cursor/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

@@ -17,7 +17,7 @@ Use este bloco para explicar **em uma conversa** para **seus parceiros (empresas
 
 **Para a empresa (parceiro):**
 - No painel aparecem **e-mail + oferta** de quem pediu cupom, para operacao (nao substitui contrato nem obrigacao com o cliente).
-- Depois de criar a oferta, o **texto do desconto** (ex.: % ou 2x1) **nao muda**. Evita confusao com quem ja viu a promocao; da para ajustar texto de apoio, foto, datas, pausar, limite de cupons conforme o sistema.
+- Depois de criar a oferta, **titulo, descricao, imagem, categorias e texto da promocao** (percentual, preco de/por ou frase tipo 2x1) **nao podem ser alterados**; so **datas de vigencia**, **limite de cupons** (ou remover o limite) e **publicar ou pausar** podem mudar. Isso mantem a mesma promessa para quem ja gerou cupom.
 - **Datas de inicio e fim** sao obrigatorias e o fim nao pode ser antes do inicio.
 
 **Pagina "Como funciona":** e **publica** (todo mundo le, comerciante ou turista) para todos entenderem o mesmo fluxo.
@@ -85,7 +85,7 @@ Importante (MVP):
 4. Preencher:
    - titulo
    - descricao
-   - desconto
+   - **tipo de promocao** (ao criar): **percentual** (so numeros; o site coloca o % sozinho), **de um preco por outro** em reais (dois campos so com numeros), ou **outra** (texto curto, ex. 2 por 1)
    - categoria
    - periodo de validade
    - imagem
@@ -93,6 +93,51 @@ Importante (MVP):
 5. Salvar.
 6. Para editar ou excluir, usar os icones na tabela.
 7. Abaixo da tabela de ofertas: **ranking por e-mail** (uma linha por e-mail: ofertas distintas, validados no local, último cupom; o topo **prioriza quem mais validou** cupom no scanner ou código; **se ainda não houver nenhuma validação** no seu estabelecimento, a ordem é **quem mais gerou** cupom; os 3 primeiros em destaque) e **detalhe por e-mail e oferta** (por combinação e-mail + oferta: cupons gerados, validados e data; ordenado por quantidade de cupons gerados naquela linha). Os dados vêm dos cupons no Firebase.
+
+### Limites de caracteres (para a lista nao ficar poluida)
+
+O sistema limita o tamanho dos textos, no estilo de sites de ofertas (titulos curtos, descricao legivel no celular):
+
+| Campo | Maximo aproximado |
+|--------|-------------------|
+| Titulo da oferta | 60 caracteres |
+| Descricao | 500 caracteres |
+| Texto da promocao no modo livre (“outros”, ex. 2x1) | 25 caracteres |
+| Percentual e “De R$ … por …” | formatados pelo sistema (ate 80 caracteres gravados) |
+| Nome do estabelecimento (cadastro e perfil) | 80 caracteres |
+
+No formulario aparece um **contador** (ex.: 12/60 no titulo). O site tambem aplica o limite ao salvar, mesmo se alguem tentasse contornar o navegador.
+
+### Limite de cupons (QR) — regras ao editar
+
+- **Opcional:** em branco = **sem limite** de cupons gerados.
+- Se voce **preencher** o limite, o numero minimo e **5**.
+- O painel mostra quantos cupons **ja foram emitidos** e quantos **faltam** (quando ha limite).
+- **Se a quantidade ja emitida for igual ou maior que o maximo** que voce definiu, a oferta fica **inativa** e **some da pagina publica** (atingiu o teto).
+- **Exemplo:** estavam **10 emitidos de 30** e voce **edita o maximo para 10**: como ja ha 10 emitidos, o sistema entende que o limite foi alcancado → oferta **inativa** na home.
+- **Se a oferta estava esgotada** (emitidos = maximo) e voce **sobe** o maximo para **acima** do numero ja emitido, pode **voltar a publicar** na mesma tela de edicao (marcando publicar).
+- **Remover o limite** (deixar o campo em branco na edicao) tira o teto de cupons (comportamento descrito no proprio formulario).
+
+### Esqueci a senha — o que acontece (nao e dentro deste site)
+
+1. Na tela de login, use o link **Esqueceu a senha** (ou texto parecido).
+2. Informe o **mesmo e-mail** do cadastro da empresa.
+3. O **Firebase Authentication (Google)** envia um e-mail com um **link**. O remetente pode ser um endereco **noreply** do Firebase ou do Google — **verifique spam/lixo eletronico**.
+4. Ao clicar no link, abre uma pagina **segura em outro endereco** (dominio Google/Firebase), **nao** a pagina do Playas e Ventajas. E nessa pagina que voce **define a nova senha** e confirma.
+5. Se o e-mail nao chegar: confira se o e-mail esta certo, espere alguns minutos, veja spam, e no Console Firebase em **Authentication** se o metodo **E-mail/senha** esta ativo e se o dominio do site esta em **Dominios autorizados** (ajuste feito pela equipe tecnica).
+
+**Nota:** A equipe de desenvolvimento **nao consegue ver** sua senha nem “testar o seu e-mail” por voce; o teste real e: pedir o reset com um e-mail que voce controla e abrir a caixa de entrada.
+
+### Apagar ofertas de teste ([TESTE] / QA) — o app nao deixa apagar oferta de outra conta
+
+Ofertas criadas por script de teste costumam ter titulo com **[TESTE]** ou nome do comerciante **QA Playas (demo)**. Pelo **painel da empresa** so da para **excluir as proprias** ofertas; ofertas de **outro usuario** no mesmo projeto Firebase nao aparecem no seu painel nem podem ser apagadas pelo site.
+
+**Quem administra o projeto** pode remover esses dados de uma destas formas:
+
+1. **Console Firebase → Firestore:** abrir a colecao `offers`, localizar documentos com **[TESTE]** no titulo (ou comerciante QA), **excluir** um a um. Depois, na colecao `coupons`, apagar cupons orfaos se necessario (ou pedir a equipe).
+2. **Script com conta de servico (equipe tecnica):** na pasta do projeto, com chave JSON de servico e variavel `GOOGLE_APPLICATION_CREDENTIALS`, rodar `npm run cleanup:qa` — isso apaga ofertas que batem a regra [TESTE] / QA Playas, mais cupons e travas (`couponLocks`) ligados a esses IDs.
+
+Se voce nao for administrador do Google Cloud/Firebase do projeto, peca a quem implantou o site para executar a limpeza ou usar o Console.
 
 ### Home publica x area interna (multiempresa)
 
@@ -111,7 +156,14 @@ Importante sobre multiempresa:
 
 - Ao cadastrar, os dados da empresa (nome, CNPJ, **e-mail de login**) sao gravados no Firestore na colecao **`companies`**, com documento identificado pelo **mesmo ID** do usuario no Firebase Auth.
 - No login seguinte, o sistema le esse cadastro para mostrar o nome da empresa no painel.
-- **Esqueci a senha:** o envio do link e feito pelo **Firebase Authentication** (e-mail padrao do Google/Firebase). E preciso ter **E-mail/senha** ativado em Authentication e, para dominio proprio, o dominio do site listado em **Dominios autorizados**. Se o e-mail nao chegar, verificar pasta de spam e o modelo de e-mail em Authentication > Modelos.
+- **Esqueci a senha:** resumo rapido acima na secao **Esqueci a senha**; detalhes tecnicos de dominio autorizado ficam com a equipe no Firebase Console.
+
+---
+
+## 3a) Onde ler as mesmas regras no site (turista e empresa)
+
+- **Como funciona** (menu do site): texto publico para visitante e comerciante, alinhado a este guia.
+- **Termos de uso** e **Politica de privacidade** (rodape): incluem regras de cupom, limites de texto e limite de cupons do ponto de vista juridico, redefinicao de senha via Google/Firebase, e contato **playasyventajas@gmail.com**.
 
 ---
 

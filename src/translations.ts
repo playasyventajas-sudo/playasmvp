@@ -37,12 +37,13 @@ export const translations = {
       loginSubtitle:
         "Use o e-mail e a senha do cadastro. Se esquecer a senha, use o link logo abaixo dos campos.",
       resetPasswordDescription:
-        "Informe o e-mail que você usou no cadastro. Você recebe um link para criar uma senha nova."
+        "Informe o e-mail que você usou no cadastro. Você recebe um link para criar uma senha nova.",
+      sessionLoading: "Verificando sessão..."
     },
     home: {
       title: "Descubra as Melhores",
       subtitle: "Experiências na Praia",
-      description: "Descontos exclusivos em coquetéis, aulas de surf e jantares de frutos do mar. Gere seu cupom instantaneamente e aproveite o paraíso. Quando o parceiro definir limite de cupons, a página mostra quantos ainda restam, atualizando em tempo real.",
+      description: "Descontos exclusivos em coquetéis, aulas de surf e jantares e outras experiências. Gere seu cupom instantaneamente e aproveite o paraíso.",
       validFrom: "Válido de:",
       validUntil: "Válido até:",
       clear: "Limpar",
@@ -53,7 +54,8 @@ export const translations = {
       validUntil: "Válido até",
       getCoupon: "Pegar Cupom",
       couponsRemaining: "Restam {remaining} de {total} cupons",
-      couponsFewLeft: "Poucos cupons"
+      couponsFewLeft: "Poucos cupons",
+      couponsLastOne: "Último cupom"
     },
     couponModal: {
       title: "Garanta seu cupom",
@@ -72,7 +74,8 @@ export const translations = {
       error: "Erro ao gerar cupom",
       soldOut: "Esta oferta esgotou os cupons disponíveis ou não está mais ativa.",
       alreadyClaimed: "Este e-mail já gerou cupom para esta oferta. Cada e-mail pode ter um cupom por promoção; você pode usar o mesmo e-mail em outras ofertas.",
-      invalidEmail: "Informe seu e-mail para gerar o cupom."
+      invalidEmail: "Informe seu e-mail para gerar o cupom.",
+      notYetValid: "Esta promoção ainda não começou. Volte a partir da data de início indicada na oferta."
     },
     admin: {
       title: "Gerenciar Ofertas",
@@ -97,7 +100,7 @@ export const translations = {
       collapseCustomerList: "Ver menos",
       placeholders: {
         title: "Título da Oferta",
-        discount: "Desconto (ex: 20% OFF)",
+        discount: "Promoção",
         merchant: "Nome do Comerciante",
         desc: "Descrição",
         imageUrl: "URL da Imagem (opcional)",
@@ -131,9 +134,28 @@ export const translations = {
       couponCountSummary:
         "Esta oferta: já emitidos {issued} cupons, limite {max}, restam {remaining}. Na página pública, quem visita também vê quantos faltam quando há limite.",
       maxCouponsInvalid: "O máximo de cupons deve ser um número inteiro maior ou igual a 5, ou deixe em branco.",
-      discountFieldHint: "Aparece na página da oferta e no cupom. Defina ao criar a oferta.",
+      discountFieldHint: "",
       discountLockedHint:
         "O tipo de promoção (%, 2x1, etc.) não pode ser alterado depois de criar a oferta.",
+      promoKindLabel: "Tipo de promoção",
+      promoKindPercent: "Porcentagem",
+      promoKindPrice: "De um preço por outro",
+      promoKindDeal: "Outra (ex.: 2 por 1)",
+      promoLockedLabel: "Promoção (fixa após criar)",
+      percentLabel: "Digite só o número (a % entra sozinha)",
+      percentPreview: "Vai aparecer como:",
+      pricePairIntro:
+        "Informe valores em reais inteiros (apenas números). Ex.: de R$ 500 por R$ 299.",
+      priceFromLabel: "Valor antes (R$)",
+      priceToLabel: "Valor promocional (R$)",
+      dealLabel: "Texto da promoção",
+      dealPlaceholder: "Ex.: 2 por 1, segunda bebida grátis",
+      dealHint:
+        "Como em sites de cupom: frase curta. Ex.: “Chope duplo”, “Compre 1 leve 2”.",
+      promoInvalid:
+        "Preencha a promoção: percentual entre 1 e 100, os dois valores em reais, ou o texto da oferta.",
+      categoryRequired: "Selecione ao menos uma categoria (bar, restaurante, experiência, etc.).",
+      charCounter: "{used}/{max}",
       profileHeading: "Nome do estabelecimento",
       profileDesc: "Você pode alterar quando quiser. O nome é atualizado em todas as suas ofertas.",
       profilePlaceholder: "Nome do estabelecimento",
@@ -195,13 +217,16 @@ export const translations = {
         "Você informa o e-mail na oferta, o site gera um QR Code na tela e você mostra esse código no estabelecimento para validar o benefício.",
         "Respeite a data de início e a data de fim da oferta e o texto que estiver na página. O cupom fica com o desconto ou condição que apareciam na oferta no momento em que você gerou.",
         "Se o parceiro definiu um limite de cupons, a página pode mostrar quantos ainda restam e essa informação atualiza quando outras pessoas pedem cupom.",
+        "Na lista pública, títulos e descrições respeitam um tamanho máximo para a página ficar organizada; quem cadastra a oferta vê o limite e um contador no formulário.",
         "No rodapé estão os Termos de Uso e a Política de Privacidade, com explicação sobre o uso do e-mail e como falar com a gente."
       ],
       merchantSectionTitle: "Para a empresa parceira",
       merchantParagraphs: [
-        "A área da empresa é onde você se cadastra, entra com login e gerencia suas ofertas. Ali você monta texto, foto, coloca a data de início e a data de fim no formulário, uma ao lado da outra, escolhe se a oferta fica publicada ou pausada e pode colocar um limite opcional de cupons em QR.",
-        "Você pode mudar o nome do estabelecimento quando quiser. Ao editar uma oferta que já existe, não é possível mudar o tipo de promoção (campo de desconto), nem título, descrição, imagem nem categorias. Você pode alterar datas de vigência, limite de cupons (QR) e publicar ou pausar. Quando há limite, o painel mostra quantos cupons já foram emitidos e quantos faltam. As ofertas aparecem em duas abas: em andamento e arquivo, para as que estão pausadas ou com vigência já encerrada por data.",
-        "Se esquecer a senha, na tela de login use o texto para recuperar senha, informe o e-mail do cadastro e abra o e-mail que chegar. Nesse e-mail há um link. Ao clicar, abre uma página segura fora deste painel onde você digita a nova senha e confirma na mesma tela. Não é dentro do site do Playas e Ventajas que fica essa confirmação, e sim na página que abre pelo link do e-mail.",
+        "A área da empresa é onde você se cadastra, entra com login e gerencia suas ofertas. Na criação da oferta você define título, descrição, imagem, categorias, tipo de promoção (percentual com % automático, preço de/por em reais ou texto livre como 2 por 1), datas de início e fim, publicar ou pausar e um limite opcional de cupons em QR.",
+        "Limites de texto ao criar a oferta: título até 60 caracteres, descrição até 500, texto livre da promoção (modo “outros”) até 25 caracteres, nome do estabelecimento (cadastro e perfil) até 80. O formulário mostra quantos caracteres já foram usados, para manter a vitrine de ofertas limpa.",
+        "Você pode mudar o nome do estabelecimento quando quiser. Depois de criar a oferta, não é possível alterar o tipo de promoção (campo de desconto), nem título, descrição, imagem nem categorias — isso mantém a mesma promessa para quem já gerou cupom. Você pode alterar datas de vigência, o limite de cupons (QR) e publicar ou pausar. Quando há limite, o painel mostra quantos cupons já foram emitidos e quantos faltam. As ofertas aparecem em duas abas: em andamento e arquivo (pausadas ou com data de fim já passada).",
+        "Limite de cupons (QR): se você preencher, o número mínimo é 5. Em branco = sem limite. Se já existirem cupons emitidos e você reduzir o máximo até ficar igual ou menor que a quantidade já emitida, a oferta fica inativa e some da página pública. Exemplo: se já foram emitidos 10 de 30 e você edita o máximo para 10, o sistema entende que o limite foi atingido e a oferta fica inativa. Se a oferta estava esgotada e você aumenta o máximo para acima do número já emitido, pode voltar a publicar na edição (marcando publicar). Remover o limite (deixar em branco) tira o teto de cupons.",
+        "Se esquecer a senha, na tela de login use o link de recuperação, informe o e-mail do cadastro e abra o e-mail que chegar (pode ir para spam). O envio é feito pelo Firebase Authentication (Google); o remetente pode ser um endereço do Firebase. O link abre uma página segura fora deste site onde você define a nova senha. Não é dentro do Playas e Ventajas que fica essa confirmação, e sim na página que abre pelo link do e-mail.",
         "Na área logada você vê uma lista de e-mails que pediram cupom em cada oferta, para ajudar na operação no balcão. Há um ranking por e-mail: enquanto não houver nenhuma validação no seu estabelecimento, quem aparece primeiro é quem mais gerou cupom; depois que houver validações, o topo é quem mais validou cupom.",
         "Use o leitor de QR na área da empresa para marcar o cupom como usado quando o cliente mostrar o código.",
         "Dúvidas sobre o site ou dados pessoais: use o e-mail indicado na Política de Privacidade no rodapé."
@@ -217,10 +242,11 @@ export const translations = {
         { title: "1. Aceitação", text: "Ao usar o site Playas e Ventajas, você declara ter lido e concordado com estes Termos e com a Política de Privacidade. O serviço é oferecido no estado em que se encontra, dentro das limitações técnicas descritas no site." },
         { title: "2. Quem usa o serviço", text: "O serviço é usado por visitantes (para ver ofertas e gerar cupons) e por empresas parceiras (para cadastrar ofertas e validar cupons). A mesma página \"Como funciona\" é pública para ambos entenderem o fluxo." },
         { title: "3. Regras dos cupons (visitante)", text: "Para cada oferta, é permitido gerar no máximo um cupom por endereço de e-mail. O mesmo e-mail pode ser usado em outras ofertas, mas não para repetir vários cupons na mesma promoção. Cada cupom corresponde a um uso vinculado a esse e-mail naquela oferta (não se estende automaticamente a acompanhantes; cabe ao estabelecimento e à boa-fé na hora do atendimento). O cupom é vinculado ao e-mail e à oferta escolhida; a validade em vigência e as condições divulgadas na oferta no momento em que você gera o cupom prevalecem para aquele cupom. Quando houver limite de cupons definido pelo parceiro, o site pode exibir quantos restam, atualizando conforme novos pedidos." },
-        { title: "4. Responsabilidade das empresas", text: "O estabelecimento parceiro é responsável pelo cumprimento da oferta perante o cliente, pelas informações do estabelecimento e pelo uso do scanner conforme as regras locais. A plataforma não substitui a relação comercial entre cliente e estabelecimento." },
-        { title: "5. Limitação da plataforma", text: "Fazemos o possível para manter o sistema disponível e seguro, mas não garantimos funcionamento ininterrupto, nem nos responsabilizamos por prejuízos indiretos, lucros cessantes ou falhas de terceiros (rede, dispositivo, provedor de e-mail)." },
-        { title: "6. Contato e reclamações", text: "Para questões sobre estes termos, uso do site ou tratamento de dados: playasyventajas@gmail.com. Não garantimos resposta imediata; reserve-se o prazo de até 15 dias úteis para manifestações simples, conforme prática usual." },
-        { title: "7. Lei e foro", text: "Aplica-se a legislação brasileira, em especial o Código de Defesa do Consumidor quando aplicável e a Lei Geral de Proteção de Dados (LGPD). Fica eleito o foro da comarca do domicílio do consumidor em caso de consumidor final, nos termos da lei." }
+        { title: "4. Texto das ofertas e limite de cupons (parceiros)", text: "Os campos de título, descrição e desconto têm limites de tamanho para fins de apresentação e layout; o conteúdo publicado é de responsabilidade do parceiro. O parceiro pode definir um limite opcional de cupons por oferta; quando o limite é atingido ou quando o parceiro reduz o máximo até ficar igual ou inferior ao número já emitido, a oferta pode ficar inativa automaticamente, conforme a lógica exibida na área da empresa. A plataforma não garante disponibilidade de cupons além do limite configurado." },
+        { title: "5. Responsabilidade das empresas", text: "O estabelecimento parceiro é responsável pelo cumprimento da oferta perante o cliente, pelas informações do estabelecimento e pelo uso do scanner conforme as regras locais. A plataforma não substitui a relação comercial entre cliente e estabelecimento." },
+        { title: "6. Limitação da plataforma", text: "Fazemos o possível para manter o sistema disponível e seguro, mas não garantimos funcionamento ininterrupto, nem nos responsabilizamos por prejuízos indiretos, lucros cessantes ou falhas de terceiros (rede, dispositivo, provedor de e-mail)." },
+        { title: "7. Contato e reclamações", text: "Para questões sobre estes termos, uso do site ou tratamento de dados: playasyventajas@gmail.com. Não garantimos resposta imediata; reserve-se o prazo de até 15 dias úteis para manifestações simples, conforme prática usual." },
+        { title: "8. Lei e foro", text: "Aplica-se a legislação brasileira, em especial o Código de Defesa do Consumidor quando aplicável e a Lei Geral de Proteção de Dados (LGPD). Fica eleito o foro da comarca do domicílio do consumidor em caso de consumidor final, nos termos da lei." }
       ],
       privacyContent: [
         { title: "1. Controlador", text: "O responsável pelo tratamento dos dados pessoais no âmbito deste site é a operação Playas e Ventajas, contato: playasyventajas@gmail.com." },
@@ -230,7 +256,8 @@ export const translations = {
         { title: "5. Direitos do titular", text: "Nos termos da LGPD, você pode solicitar confirmação de tratamento, acesso, correção, anonimização, portabilidade, eliminação de dados desnecessários, informação sobre compartilhamentos e revogação de consentimento quando aplicável. Envie o pedido para playasyventajas@gmail.com com identificação razoável." },
         { title: "6. Retenção de dados", text: "Mantemos os dados pelo tempo necessário para operar cupons, validações e obrigações legais. Cupons e registros podem ser mantidos enquanto o serviço existir ou conforme prazo legal." },
         { title: "7. Segurança", text: "Adotamos medidas técnicas e administrativas razoáveis para proteger contra acesso não autorizado. Nenhum sistema é 100% inviolável; use o serviço de forma consciente." },
-        { title: "8. Reclamações", text: "Para reclamações sobre tratamento de dados ou exercício de direitos: playasyventajas@gmail.com. Você também pode contatar a Autoridade Nacional de Proteção de Dados (ANPD) conforme a legislação." }
+        { title: "8. Reclamações", text: "Para reclamações sobre tratamento de dados ou exercício de direitos: playasyventajas@gmail.com. Você também pode contatar a Autoridade Nacional de Proteção de Dados (ANPD) conforme a legislação." },
+        { title: "9. Redefinição de senha", text: "O envio do link para criar senha nova é processado pelo serviço Firebase Authentication (Google) para o e-mail informado; o remetente pode ser um endereço do Firebase ou do Google. A página aberta pelo link pode estar em domínio do Google/Firebase, não no domínio do Playas e Ventajas." }
       ]
     },
     footer: {
@@ -275,12 +302,13 @@ export const translations = {
       loginSubtitle:
         "Use the email and password you registered with. If you forgot your password, use the link just below the fields.",
       resetPasswordDescription:
-        "Enter the email you used to register. We send you a link to set a new password."
+        "Enter the email you used to register. We send you a link to set a new password.",
+      sessionLoading: "Checking session..."
     },
     home: {
       title: "Discover the Best",
       subtitle: "Beach Experiences",
-      description: "Exclusive discounts on cocktails, surf lessons, and seafood dinners. Generate your coupon instantly and enjoy paradise. When a partner sets a coupon limit, the site shows how many are left and updates live.",
+      description: "Exclusive discounts on cocktails, surf lessons, and seafood dinners. Generate your coupon instantly and enjoy paradise.",
       validFrom: "Valid From:",
       validUntil: "Valid Until:",
       clear: "Clear",
@@ -291,7 +319,8 @@ export const translations = {
       validUntil: "Valid until",
       getCoupon: "Get Coupon",
       couponsRemaining: "{remaining} of {total} coupons left",
-      couponsFewLeft: "Few coupons left"
+      couponsFewLeft: "Few coupons left",
+      couponsLastOne: "Last coupon"
     },
     couponModal: {
       title: "Get your coupon",
@@ -310,7 +339,8 @@ export const translations = {
       error: "Error generating coupon",
       soldOut: "This offer has no more coupons available or is no longer active.",
       alreadyClaimed: "This email already claimed a coupon for this offer. One coupon per email per promotion; you can use the same email on other offers.",
-      invalidEmail: "Please enter your email to generate the coupon."
+      invalidEmail: "Please enter your email to generate the coupon.",
+      notYetValid: "This promotion has not started yet. Come back on or after the start date shown on the offer."
     },
     admin: {
       title: "Manage Offers",
@@ -335,7 +365,7 @@ export const translations = {
       collapseCustomerList: "Show less",
       placeholders: {
         title: "Offer Title",
-        discount: "Discount (e.g. 20% OFF)",
+        discount: "Promotion",
         merchant: "Merchant Name",
         desc: "Description",
         imageUrl: "Image URL (optional)",
@@ -369,8 +399,25 @@ export const translations = {
       couponCountSummary:
         "This offer: {issued} coupons issued so far, limit {max}, {remaining} left. On the public page, visitors also see how many are left when a limit is set.",
       maxCouponsInvalid: "Max coupons must be an integer ≥ 5, or leave blank.",
-      discountFieldHint: "Shown on the offer page and on the coupon. Set it when you create the offer.",
+      discountFieldHint: "",
       discountLockedHint: "The promotion type (%, 2-for-1, etc.) cannot be changed after the offer is created.",
+      promoKindLabel: "Promotion type",
+      promoKindPercent: "Percentage",
+      promoKindPrice: "From one price to another",
+      promoKindDeal: "Other (e.g. 2-for-1)",
+      promoLockedLabel: "Promotion (fixed after creation)",
+      percentLabel: "Number only (we add %)",
+      percentPreview: "Will show as:",
+      pricePairIntro: "Whole reais only (digits). E.g. from R$ 500 to R$ 299.",
+      priceFromLabel: "Original price (R$)",
+      priceToLabel: "Promo price (R$)",
+      dealLabel: "Promotion text",
+      dealPlaceholder: "e.g. 2-for-1, second drink free",
+      dealHint: "Short phrase, like deal sites: clear and scannable.",
+      promoInvalid:
+        "Fill in the promotion: percent 1–100, both prices, or the offer text.",
+      categoryRequired: "Select at least one category (bar, restaurant, experience, etc.).",
+      charCounter: "{used}/{max}",
       profileHeading: "Establishment name",
       profileDesc: "You can change it anytime. The name is updated on all your offers.",
       profilePlaceholder: "Establishment name",
@@ -432,13 +479,16 @@ export const translations = {
         "You enter your email on the offer page, the site shows a QR code on screen, and you show that code at the venue to redeem the benefit.",
         "Respect the start and end dates of the offer and the text on the page. The coupon keeps the discount or condition shown on the offer at the moment you generated it.",
         "If the partner set a coupon limit, the page may show how many are left, and that count updates when others request coupons.",
+        "On the public list, titles and descriptions respect a maximum length so the page stays tidy; partners see the limit and a counter in the form.",
         "The footer has Terms of Use and Privacy Policy, with details on email use and how to contact us."
       ],
       merchantSectionTitle: "For partner businesses",
       merchantParagraphs: [
-        "The merchant area is where you register, sign in, and manage your offers. You add copy and photo, set the start date and end date side by side in the form, choose whether the offer is published or paused, and you can set an optional QR coupon limit.",
-        "You can change the establishment name anytime. When you edit an offer that already exists, you cannot change the promotion type (discount field), or the title, description, image, or categories. You can change validity dates, the QR coupon limit, and publish or pause. When there is a limit, the dashboard shows how many coupons were issued and how many are left. Offers appear in two tabs: active and archive, for paused offers or offers whose end date has passed.",
-        "If you forgot your password, on the login screen use the recovery text, enter your registered email, and open the email you receive. That email contains a link. When you click it, a secure page opens outside this dashboard where you enter and confirm your new password on that same screen. That confirmation is not inside the Playas e Ventajas site; it is on the page that opens from the email link.",
+        "The merchant area is where you register, sign in, and manage your offers. When you create an offer you set title, description, image, categories, promotion type (percentage with % added for you, from/to price in BRL, or free text like 2-for-1), start and end dates, publish or pause, and an optional QR coupon limit.",
+        "Text limits when creating an offer: title up to 60 characters, description up to 500, free-text promotion (\"other\" mode) up to 25 characters, establishment name (signup and profile) up to 80. The form shows how many characters you have used, to keep the offer list clean.",
+        "You can change the establishment name anytime. After an offer is created, you cannot change the promotion type (discount field), title, description, image, or categories — that keeps the same promise for people who already claimed a coupon. You can change validity dates, the QR coupon limit, and publish or pause. When there is a limit, the dashboard shows how many coupons were issued and how many are left. Offers appear in two tabs: active and archive (paused or past end date).",
+        "QR coupon limit: if you set one, the minimum is 5. Blank means no limit. If coupons were already issued and you lower the maximum until it is equal to or less than the number already issued, the offer becomes inactive and disappears from the public page. Example: if 10 were issued out of 30 and you edit the maximum to 10, the system treats the limit as reached and the offer becomes inactive. If the offer was sold out and you raise the maximum above the number already issued, you can publish again in the edit screen (choose publish). Clearing the limit removes the cap.",
+        "If you forgot your password, use the recovery link on the login screen, enter your registered email, and open the email you receive (check spam). Sending is done by Firebase Authentication (Google); the sender may be a Firebase address. The link opens a secure page outside this site where you set a new password. Confirmation is not inside Playas e Ventajas; it is on the page opened from the email link.",
         "In the signed-in area you see a list of emails that requested coupons for each offer, to help at the counter. There is also an email ranking: until someone validates a coupon at your place, the top is who generated the most coupons; after validations exist, the top is who validated the most.",
         "Use the QR scanner in the merchant area to mark a coupon as used when the customer shows the code.",
         "Questions about the site or personal data: use the email in the Privacy Policy in the footer."
@@ -454,10 +504,11 @@ export const translations = {
         { title: "1. Acceptance", text: "By using Playas e Ventajas you agree to these Terms and the Privacy Policy. The service is provided as-is within technical limits described on the site." },
         { title: "2. Who uses the service", text: "Visitors browse offers and generate coupons; partner businesses create offers and validate coupons. The same \"How it works\" page is public for both audiences." },
         { title: "3. Coupon rules (visitor)", text: "You may generate at most one coupon per email address per offer. The same email may be used on other offers, but not to obtain multiple coupons for the same promotion. Each coupon corresponds to one use linked to that email for that offer (it does not automatically extend to companions; the venue and good faith at redemption apply). The coupon is tied to your email and the chosen offer; the validity and conditions shown on the offer when you generate the coupon apply to that coupon. When the partner sets a coupon limit, the site may show how many remain, updating as new coupons are claimed." },
-        { title: "4. Partner responsibilities", text: "Each establishment is responsible for honoring the offer to the customer and for its own information. The platform does not replace the commercial relationship between customer and venue." },
-        { title: "5. Platform limitation", text: "We strive for availability and security but do not guarantee uninterrupted service, and are not liable for indirect damages, lost profits, or third-party failures (network, device, email provider)." },
-        { title: "6. Contact and complaints", text: "For questions about these terms, the site, or data processing: playasyventajas@gmail.com. We do not guarantee immediate replies; a reasonable period may apply." },
-        { title: "7. Law and venue", text: "Brazilian law applies, including the Consumer Code where applicable and the LGPD. Venue follows consumer protection rules where applicable." }
+        { title: "4. Offer text and coupon limits (partners)", text: "Title, description, and discount fields have length limits for layout and display; published content is the partner’s responsibility. The partner may set an optional per-offer coupon limit; when the limit is reached or the partner lowers the maximum to equal or below the number already issued, the offer may become inactive automatically, as shown in the merchant area. The platform does not guarantee coupon availability beyond the configured limit." },
+        { title: "5. Partner responsibilities", text: "Each establishment is responsible for honoring the offer to the customer and for its own information. The platform does not replace the commercial relationship between customer and venue." },
+        { title: "6. Platform limitation", text: "We strive for availability and security but do not guarantee uninterrupted service, and are not liable for indirect damages, lost profits, or third-party failures (network, device, email provider)." },
+        { title: "7. Contact and complaints", text: "For questions about these terms, the site, or data processing: playasyventajas@gmail.com. We do not guarantee immediate replies; a reasonable period may apply." },
+        { title: "8. Law and venue", text: "Brazilian law applies, including the Consumer Code where applicable and the LGPD. Venue follows consumer protection rules where applicable." }
       ],
       privacyContent: [
         { title: "1. Controller", text: "The data controller for this site is the Playas e Ventajas operation, contact: playasyventajas@gmail.com." },
@@ -467,7 +518,8 @@ export const translations = {
         { title: "5. Your rights", text: "Under the LGPD you may request access, correction, deletion, portability, information on sharing, and other rights. Send requests to playasyventajas@gmail.com with reasonable identification." },
         { title: "6. Retention", text: "We keep data as long as needed to operate coupons, validations, and legal duties." },
         { title: "7. Security", text: "We apply reasonable technical and administrative measures. No system is 100% secure." },
-        { title: "8. Complaints", text: "For data complaints or rights: playasyventajas@gmail.com. You may also contact the ANPD (Brazil) as provided by law." }
+        { title: "8. Complaints", text: "For data complaints or rights: playasyventajas@gmail.com. You may also contact the ANPD (Brazil) as provided by law." },
+        { title: "9. Password reset", text: "The link to set a new password is sent by Firebase Authentication (Google) to the email you enter; the sender may be a Firebase or Google address. The page opened from the link may be on a Google/Firebase domain, not the Playas e Ventajas site domain." }
       ]
     },
     footer: {
@@ -512,12 +564,13 @@ export const translations = {
       loginSubtitle:
         "Usa el correo y la contraseña del registro. Si olvidaste la contraseña, usa el enlace justo debajo de los campos.",
       resetPasswordDescription:
-        "Escribe el correo que usaste al registrarte. Recibes un enlace para crear una contraseña nueva."
+        "Escribe el correo que usaste al registrarte. Recibes un enlace para crear una contraseña nueva.",
+      sessionLoading: "Comprobando sesión..."
     },
     home: {
       title: "Descubre las Mejores",
       subtitle: "Experiencias de Playa",
-      description: "Descuentos exclusivos en cócteles, clases de surf y cenas de mariscos. Genera tu cupón al instante y disfruta del paraíso. Si el socio define un límite de cupones, el sitio muestra cuántos quedan y se actualiza al momento.",
+      description: "Descuentos exclusivos en cócteles, clases de surf y cenas de mariscos. Genera tu cupón al instante y disfruta del paraíso.",
       validFrom: "Válido desde:",
       validUntil: "Válido hasta:",
       clear: "Limpiar",
@@ -528,7 +581,8 @@ export const translations = {
       validUntil: "Válido hasta",
       getCoupon: "Obtener Cupón",
       couponsRemaining: "Quedan {remaining} de {total} cupones",
-      couponsFewLeft: "Pocos cupones"
+      couponsFewLeft: "Pocos cupones",
+      couponsLastOne: "Último cupón"
     },
     couponModal: {
       title: "Obtén tu cupón",
@@ -547,7 +601,8 @@ export const translations = {
       error: "Error al generar el cupón",
       soldOut: "Esta oferta agotó los cupones disponibles o ya no está activa.",
       alreadyClaimed: "Este correo ya generó un cupón para esta oferta. Un cupón por correo y por promoción; puedes usar el mismo correo en otras ofertas.",
-      invalidEmail: "Introduce tu correo para generar el cupón."
+      invalidEmail: "Introduce tu correo para generar el cupón.",
+      notYetValid: "Esta promoción aún no empezó. Vuelve a partir de la fecha de inicio indicada en la oferta."
     },
     admin: {
       title: "Gestionar Ofertas",
@@ -572,7 +627,7 @@ export const translations = {
       collapseCustomerList: "Ver menos",
       placeholders: {
         title: "Título de la Oferta",
-        discount: "Descuento (ej: 20% OFF)",
+        discount: "Promoción",
         merchant: "Nombre del Comerciante",
         desc: "Descripción",
         imageUrl: "URL de la Imagen (opcional)",
@@ -606,9 +661,27 @@ export const translations = {
       couponCountSummary:
         "Esta oferta: ya emitidos {issued} cupones, límite {max}, quedan {remaining}. En la página pública, quien visita también ve cuántos quedan si hay límite.",
       maxCouponsInvalid: "El máximo debe ser un entero ≥ 5, o déjalo en blanco.",
-      discountFieldHint: "Se muestra en la página de la oferta y en el cupón. Defínelo al crear la oferta.",
+      discountFieldHint: "",
       discountLockedHint:
         "El tipo de promoción (%, 2x1, etc.) no se puede cambiar después de crear la oferta.",
+      promoKindLabel: "Tipo de promoción",
+      promoKindPercent: "Porcentaje",
+      promoKindPrice: "De un precio a otro",
+      promoKindDeal: "Otra (ej.: 2x1)",
+      promoLockedLabel: "Promoción (fija al crear)",
+      percentLabel: "Solo el número (el % se añade solo)",
+      percentPreview: "Se mostrará como:",
+      pricePairIntro:
+        "Valores en reales enteros (solo números). Ej.: de R$ 500 por R$ 299.",
+      priceFromLabel: "Precio antes (R$)",
+      priceToLabel: "Precio promoción (R$)",
+      dealLabel: "Texto de la promoción",
+      dealPlaceholder: "Ej.: 2x1, segunda bebida gratis",
+      dealHint: "Como en cuponeras: frase corta y clara.",
+      promoInvalid:
+        "Completa la promoción: porcentaje entre 1 y 100, ambos precios o el texto.",
+      categoryRequired: "Selecciona al menos una categoría (bar, restaurante, experiencia, etc.).",
+      charCounter: "{used}/{max}",
       profileHeading: "Nombre del establecimiento",
       profileDesc: "Puedes cambiarlo cuando quieras. El nombre se actualiza en todas tus ofertas.",
       profilePlaceholder: "Nombre del establecimiento",
@@ -670,13 +743,16 @@ export const translations = {
         "Informas el correo en la oferta, el sitio muestra un código QR en pantalla y tú lo muestras en el local para canjear el beneficio.",
         "Respeta la fecha de inicio y la fecha de fin de la oferta y el texto de la página. El cupón queda con el descuento o condición que aparecían en la oferta cuando lo generaste.",
         "Si el socio definió un límite de cupones, la página puede mostrar cuántos quedan y esa información se actualiza cuando otras personas piden cupón.",
+        "En la lista pública, títulos y descripciones respetan un tamaño máximo para mantener la página ordenada; quien crea la oferta ve el límite y un contador en el formulario.",
         "En el pie están los Términos de Uso y la Política de Privacidad, con explicación del uso del correo y cómo contactarnos."
       ],
       merchantSectionTitle: "Para la empresa socia",
       merchantParagraphs: [
-        "El área de empresa es donde te registras, inicias sesión y gestionas tus ofertas. Ahí pones texto y foto, indicas la fecha de inicio y la fecha de fin en el formulario, una al lado de la otra, eliges si la oferta queda publicada o pausada y puedes poner un límite opcional de cupones en QR.",
-        "Puedes cambiar el nombre del establecimiento cuando quieras. Al editar una oferta que ya existe, no puedes cambiar el tipo de promoción (campo de descuento), ni título, descripción, imagen ni categorías. Sí puedes cambiar las fechas de vigencia, el límite de cupones (QR) y publicar o pausar. Cuando hay límite, el panel muestra cuántos cupones ya se emitieron y cuántos quedan. Las ofertas aparecen en dos pestañas: en curso y archivo, para las pausadas o con vigencia ya cerrada por fecha.",
-        "Si olvidaste la contraseña, en la pantalla de inicio de sesión usa el texto para recuperarla, escribe el correo del registro y abre el correo que llega. Ese correo trae un enlace. Al hacer clic, se abre una página segura fuera de este panel donde escribes la contraseña nueva y la confirmas en la misma pantalla. Esa confirmación no está dentro del sitio de Playas e Ventajas, sino en la página que abre el enlace del correo.",
+        "El área de empresa es donde te registras, inicias sesión y gestionas tus ofertas. Al crear la oferta defines título, descripción, imagen, categorías, tipo de promoción (porcentaje con % automático, precio de/por en reales o texto libre como 2x1), fechas de inicio y fin, publicar o pausar y un límite opcional de cupones en QR.",
+        "Límites de texto al crear: título hasta 60 caracteres, descripción hasta 500, texto libre de la promoción (modo “otros”) hasta 25 caracteres, nombre del establecimiento (registro y perfil) hasta 80. El formulario muestra cuántos caracteres llevas, para mantener la vitrina ordenada.",
+        "Puedes cambiar el nombre del establecimiento cuando quieras. Después de crear la oferta, no puedes cambiar el tipo de promoción (descuento), ni título, descripción, imagen ni categorías — así se mantiene la misma promesa para quien ya sacó cupón. Sí puedes cambiar fechas de vigencia, el límite de cupones (QR) y publicar o pausar. Con límite, el panel muestra cuántos cupones se emitieron y cuántos quedan. Las ofertas están en dos pestañas: en curso y archivo (pausadas o con fecha de fin pasada).",
+        "Límite de cupones (QR): si lo completas, el mínimo es 5. Vacío = sin límite. Si ya hay cupones emitidos y reduces el máximo hasta quedar igual o por debajo de lo ya emitido, la oferta queda inactiva y desaparece de la página pública. Ejemplo: si ya se emitieron 10 de 30 y editas el máximo a 10, el sistema entiende que se alcanzó el tope y la oferta queda inactiva. Si la oferta estaba agotada y subes el máximo por encima de lo emitido, puedes volver a publicar en la edición (marcando publicar). Dejar el límite en blanco quita el tope.",
+        "Si olvidaste la contraseña, usa el enlace de recuperación en el login, escribe el correo del registro y abre el correo (revisa spam). El envío lo hace Firebase Authentication (Google); el remitente puede ser una dirección de Firebase. El enlace abre una página segura fuera de este sitio para la nueva contraseña. La confirmación no está dentro de Playas e Ventajas, sino en la página que abre el enlace del correo.",
         "En el área privada ves una lista de correos que pidieron cupón en cada oferta, para ayudar en la operación en el mostrador. También hay un ranking por correo: mientras no haya ninguna validación en tu local, arriba quien más generó cupones; cuando ya existan validaciones, arriba quien más validó cupones.",
         "Usa el lector QR en el área de empresa para marcar el cupón como usado cuando el cliente muestre el código.",
         "Dudas sobre el sitio o datos personales: usa el correo indicado en la Política de Privacidad en el pie."
@@ -692,10 +768,11 @@ export const translations = {
         { title: "1. Aceptación", text: "Al usar Playas e Ventajas declaras haber leído y aceptado estos Términos y la Política de Privacidad. El servicio se ofrece tal cual, dentro de los límites técnicos del sitio." },
         { title: "2. Quién usa el servicio", text: "Visitantes ven ofertas y generan cupones; empresas socias publican ofertas y validan cupones. La página \"Cómo funciona\" es pública para ambos." },
         { title: "3. Reglas de cupones (visitante)", text: "Se permite como máximo un cupón por correo electrónico y por oferta. El mismo correo puede usarse en otras ofertas, pero no para repetir varios cupones en la misma promoción. Cada cupón corresponde a un uso vinculado a ese correo en esa oferta (no se extiende automáticamente a acompañantes; aplican el buen criterio del local y la buena fe al canjear). El cupón se vincula al correo y a la oferta; la vigencia y las condiciones mostradas en la oferta al generar el cupón aplican a ese cupón. Si el socio define un límite de cupones, el sitio puede mostrar cuántos quedan, actualizándose con cada solicitud." },
-        { title: "4. Responsabilidad de las empresas", text: "Cada establecimiento es responsable ante el cliente por el cumplimiento de la oferta y por su propia información. La plataforma no sustituye la relación comercial entre cliente y local." },
-        { title: "5. Limitación de la plataforma", text: "Buscamos disponibilidad y seguridad, pero no garantizamos funcionamiento ininterrumpido ni respondemos por daños indirectos, lucro cesante o fallos de terceros (red, dispositivo, proveedor de correo)." },
-        { title: "6. Contacto y reclamaciones", text: "Para dudas sobre estos términos, el sitio o el tratamiento de datos: playasyventajas@gmail.com." },
-        { title: "7. Ley y competencia", text: "Se aplica la legislación brasileña, incluida la LGPD y el Código de Defensa del Consumidor cuando corresponda." }
+        { title: "4. Texto de las ofertas y límite de cupones (socios)", text: "Título, descripción y descuento tienen límites de extensión para presentación y diseño; el contenido publicado es responsabilidad del socio. El socio puede definir un límite opcional de cupones por oferta; cuando se alcanza el límite o el socio reduce el máximo hasta quedar igual o por debajo de lo ya emitido, la oferta puede quedar inactiva automáticamente, según la lógica mostrada en el área de empresa. La plataforma no garantiza disponibilidad de cupones más allá del límite configurado." },
+        { title: "5. Responsabilidad de las empresas", text: "Cada establecimiento es responsable ante el cliente por el cumplimiento de la oferta y por su propia información. La plataforma no sustituye la relación comercial entre cliente y local." },
+        { title: "6. Limitación de la plataforma", text: "Buscamos disponibilidad y seguridad, pero no garantizamos funcionamiento ininterrumpido ni respondemos por daños indirectos, lucro cesante o fallos de terceros (red, dispositivo, proveedor de correo)." },
+        { title: "7. Contacto y reclamaciones", text: "Para dudas sobre estos términos, el sitio o el tratamiento de datos: playasyventajas@gmail.com." },
+        { title: "8. Ley y competencia", text: "Se aplica la legislación brasileña, incluida la LGPD y el Código de Defensa del Consumidor cuando corresponda." }
       ],
       privacyContent: [
         { title: "1. Responsable del tratamiento", text: "El responsable es la operación Playas e Ventajas, contacto: playasyventajas@gmail.com." },
@@ -705,7 +782,8 @@ export const translations = {
         { title: "5. Derechos del titular", text: "Según la LGPD puedes solicitar acceso, corrección, eliminación, portabilidad, información sobre comparticiones y otros derechos. Envía la solicitud a playasyventajas@gmail.com con identificación razonable." },
         { title: "6. Conservación", text: "Conservamos los datos el tiempo necesario para operar cupones, validaciones y obligaciones legales." },
         { title: "7. Seguridad", text: "Aplicamos medidas razonables. Ningún sistema es 100% invulnerable." },
-        { title: "8. Reclamaciones", text: "Para reclamaciones sobre datos: playasyventajas@gmail.com. También puedes contactar a la ANPD en Brasil según la ley." }
+        { title: "8. Reclamaciones", text: "Para reclamaciones sobre datos: playasyventajas@gmail.com. También puedes contactar a la ANPD en Brasil según la ley." },
+        { title: "9. Restablecimiento de contraseña", text: "El enlace para crear una contraseña nueva lo envía Firebase Authentication (Google) al correo indicado; el remitente puede ser una dirección de Firebase o de Google. La página que abre el enlace puede estar en un dominio de Google/Firebase, no en el dominio de Playas e Ventajas." }
       ]
     },
     footer: {

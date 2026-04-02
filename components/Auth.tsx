@@ -4,6 +4,7 @@ import { translations, Language } from '../src/translations';
 import { loginCompany, registerCompany, resetPassword } from '../services/authService';
 import { CompanyUser } from '../types';
 import { IconEye, IconEyeOff } from './Icons';
+import { clipString, COMPANY_NAME_MAX } from '../src/offerLimits';
 
 interface AuthProps {
   lang: Language;
@@ -132,9 +133,15 @@ const RegisterPanel = ({ lang, onLogin, onBack }: AuthProps & { onBack: () => vo
           <input 
             type="text" 
             required 
+            maxLength={COMPANY_NAME_MAX}
             className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-sea-500 outline-none"
             value={formData.companyName}
-            onChange={e => setFormData({...formData, companyName: e.target.value})}
+            onChange={e =>
+              setFormData({
+                ...formData,
+                companyName: clipString(e.target.value, COMPANY_NAME_MAX)
+              })
+            }
           />
         </div>
 

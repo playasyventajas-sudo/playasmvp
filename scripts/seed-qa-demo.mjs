@@ -107,6 +107,7 @@ async function main() {
       validFrom: "2026-03-01",
       validUntil: "2026-12-31",
       imageUrl,
+      publishIntent: true,
       isActive: true,
       categories: o.categories,
       ownerUid: user.uid

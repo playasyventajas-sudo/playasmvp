@@ -20,6 +20,7 @@ import {
 import { auth, db, isFirebaseConfigured } from "./firebaseConfig";
 import { updateMockOffersMerchantName } from "./dataService";
 import { CompanyUser } from "../types";
+import { clipString, COMPANY_NAME_MAX } from "../src/offerLimits";
 
 // Mock user for demo mode
 const MOCK_USER: CompanyUser = {
@@ -30,9 +31,10 @@ const MOCK_USER: CompanyUser = {
 };
 
 export const registerCompany = async (email: string, pass: string, companyName: string, cnpj: string): Promise<CompanyUser> => {
+  const name = clipString(companyName.trim(), COMPANY_NAME_MAX);
   if (!isFirebaseConfigured()) {
-    console.log("Demo Mode: Registering user", { email, companyName });
-    return { ...MOCK_USER, email, companyName, cnpj };
+    console.log("Demo Mode: Registering user", { email, companyName: name });
+    return { ...MOCK_USER, email, companyName: name, cnpj };
   }
 
   try {
@@ -42,7 +44,7 @@ export const registerCompany = async (email: string, pass: string, companyName: 
     const companyData = {
       uid: user.uid,
       email: user.email || email,
-      companyName,
+      companyName: name,
       cnpj,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
@@ -53,7 +55,7 @@ export const registerCompany = async (email: string, pass: string, companyName: 
     return {
       uid: user.uid,
       email: user.email || email,
-      companyName,
+      companyName: name,
       cnpj
     };
   } catch (error) {
@@ -114,7 +116,7 @@ export const updateCompanyDisplayName = async (
   uid: string,
   companyName: string
 ): Promise<void> => {
-  const trimmed = companyName.trim();
+  const trimmed = clipString(companyName.trim(), COMPANY_NAME_MAX);
   if (!trimmed) throw new Error("empty name");
 
   if (!isFirebaseConfigured()) {
@@ -167,18 +169,32 @@ export const subscribeToAuthChanges = (callback: (user: CompanyUser | null) => v
 
   return onAuthStateChanged(auth, async (user) => {
     if (user) {
-      const docRef = doc(db, "companies", user.uid);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        const data = docSnap.data() as CompanyUser;
-        callback({ ...data, email: user.email || data.email });
-      } else {
-        callback({
-          uid: user.uid,
-          email: user.email || "",
-          companyName: user.displayName || "Company",
-          cnpj: ""
-        });
+      const authEmail = user.email || "";
+      const minimal: CompanyUser = {
+        uid: user.uid,
+        email: authEmail,
+        companyName: user.displayName || "Company",
+        cnpj: ""
+      };
+      // Evita flash de login na área empresa enquanto `companies/{uid}` carrega.
+      callback(minimal);
+      try {
+        const docRef = doc(db, "companies", user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data() as CompanyUser;
+          callback({ ...data, email: user.email || data.email });
+        } else {
+          callback({
+            uid: user.uid,
+            email: user.email || "",
+            companyName: user.displayName || "Company",
+            cnpj: ""
+          });
+        }
+      } catch (e) {
+        console.error("subscribeToAuthChanges companies read:", e);
+        callback(minimal);
       }
     } else {
       callback(null);

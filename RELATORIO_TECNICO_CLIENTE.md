@@ -86,6 +86,7 @@ Observacao: as ofertas foram intencionalmente criadas para validacao do MVP.
 - Cadastro grava documento em `companies/{uid}` com nome, CNPJ, e-mail e timestamps (`createdAt` / `updatedAt` em novos cadastros; e-mail sincronizado no login se mudar no Auth).
 - CRUD de ofertas no painel.
 - Cada oferta nova grava `ownerUid` (dono da oferta).
+- Campo **`discount`** (string): texto unico exibido na vitrine e no cupom. No painel, ao **criar**, a UI oferece tres modos: percentual (entrada so com digitos; persiste como `N%`), par de precos em reais inteiros (persiste como `De R$ X por R$ Y` com formatacao pt-BR), ou texto livre (ex. 2x1). Limites: **titulo** ate **60** caracteres (`OFFER_TITLE_MAX`); texto livre da promocao (“outros”) ate **25** (`OFFER_DISCOUNT_DEAL_TEXT_MAX`); valor gravado em `discount` e truncado com teto **80** (`OFFER_DISCOUNT_MAX`) para caber formatacoes longas. Apos criar, o campo nao e editavel. Na exibicao publica, valores legados so numericos (`30`) sao normalizados para `30%`.
 - Upload de imagem em Storage no caminho por dono:
   - `offers/{ownerUid}/{arquivo}`
 
@@ -114,7 +115,7 @@ Observacao: as ofertas foram intencionalmente criadas para validacao do MVP.
 ### Firestore
 - `offers`: leitura publica apenas ativa; dono le/edita/deleta as proprias; **update anonimo** restrito ao fluxo de incremento de `couponsIssued` / desativacao quando existe `maxCoupons` (geracao de cupom com limite).
 - `companies`: leitura/escrita apenas pelo proprio `uid`.
-- `coupons`: criacao validada por schema minimo; leitura/update exigem autenticacao.
+- `coupons`: criacao validada por schema minimo; **leitura e update** apenas se `resource.data.merchantUid == request.auth.uid` (cupom pertence ao comerciante logado), evitando que um parceiro liste ou valide cupons de outro ou varra e-mails de clientes.
 - `mail`: fila para envio de e-mail do cupom (create permitido com `to` + `message.subject/html`; leitura bloqueada ao cliente). Entrega real depende da extensao **Trigger Email** + SMTP no Console.
 
 ### Storage
@@ -129,9 +130,11 @@ Observacao: as ofertas foram intencionalmente criadas para validacao do MVP.
 - Exposicao de segredos de servidor no frontend: nao encontrada no codigo atual.
 
 ### Riscos ainda existentes no MVP
-1. **Cupons podem ser gerados em volume alto** (sem rate limit server-side).
-2. **Leitura de cupons por usuarios autenticados** ainda e ampla para MVP.
-3. **E-mail do cupom na caixa de entrada:** fora do escopo do MVP; fila `mail` preparada no codigo; entrega real na **fase 2** (secao 10).
+1. **Cupons podem ser gerados em volume alto** (sem rate limit server-side nem App Check).
+2. **E-mail do cupom na caixa de entrada:** fora do escopo do MVP; fila `mail` preparada no codigo; entrega real na **fase 2** (secao 10).
+
+### Ajuste de seguranca (2026-04-02)
+- **Leitura de `coupons`** restrita ao dono do cupom (`merchantUid`); **update** de validacao (`VALID` -> `USED`) tambem exige o mesmo. Antes, qualquer usuario autenticado podia, em tese, consultar a colecao de cupons de forma abusiva; regras atualizadas no `firestore.rules`.
 
 ## 7) Perguntas de negocio respondidas
 
@@ -148,8 +151,7 @@ Observacao: as ofertas foram intencionalmente criadas para validacao do MVP.
 
 1. **Fase 2, entrega de e-mail do cupom:** instalar extensao **Trigger Email**, configurar **SMTP**, habilitar **Blaze** se necessario; testar ponta a ponta (ver secao 10 e `README_DEPLOY.md` Passo 4b). Opcional: Cloud Functions para logica extra.
 2. Adicionar App Check + rate limit para geracao de cupom.
-3. Restringir leitura de `coupons` para backend/claims apropriadas.
-4. Criar painel de auditoria (uso de cupom por oferta e por periodo).
+3. Criar painel de auditoria (uso de cupom por oferta e por periodo).
 
 ## 9) Checklist de aceite do MVP
 

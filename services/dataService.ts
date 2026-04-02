@@ -11,7 +11,8 @@ import {
   where,
   runTransaction,
   deleteField,
-  onSnapshot
+  onSnapshot,
+  type QueryDocumentSnapshot
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage, isFirebaseConfigured } from "./firebaseConfig";
@@ -22,6 +23,13 @@ import {
   ConsumerEmailAggregate,
   MerchantConsumerDashboard
 } from "../types";
+import {
+  clipString,
+  COMPANY_NAME_MAX,
+  OFFER_DESCRIPTION_MAX,
+  OFFER_DISCOUNT_MAX,
+  OFFER_TITLE_MAX
+} from "../src/offerLimits";
 
 // --- Mock Data for Demo (fallback) ---
 const MOCK_OWNER_UID = "mock-user-123";
@@ -33,113 +41,11 @@ export function updateMockOffersMerchantName(ownerUid: string, merchantName: str
   });
 }
 
-let MOCK_OFFERS: Offer[] = [
-  {
-    id: "1",
-    ownerUid: MOCK_OWNER_UID,
-    title: "Caipirinha em Dobro",
-    description: "Aproveite uma caipirinha grátis na compra de qualquer prato principal ao pôr do sol.",
-    discount: "2 por 1",
-    merchantName: "Quiosque Sol e Mar",
-    validFrom: "2026-01-01",
-    validUntil: "2026-12-31",
-    imageUrl: "https://picsum.photos/400/300?random=1",
-    isActive: true,
-    categories: ['bar', 'restaurant']
-  },
-  {
-    id: "2",
-    ownerUid: MOCK_OWNER_UID,
-    title: "Aula de Surf Iniciante",
-    description: "Aula de surf para iniciantes com aluguel de prancha incluso na Praia do Forte.",
-    discount: "20% OFF",
-    merchantName: "Escola de Surf Onda Azul",
-    validFrom: "2026-06-01",
-    validUntil: "2026-11-15",
-    imageUrl: "https://picsum.photos/400/300?random=2",
-    isActive: true,
-    categories: ['experience']
-  },
-  {
-    id: "3",
-    ownerUid: MOCK_OWNER_UID,
-    title: "Jantar de Frutos do Mar",
-    description: "Prato de peixe fresco do dia para duas pessoas com vista para o mar.",
-    discount: "15% OFF",
-    merchantName: "Restaurante Mar Aberto",
-    validFrom: "2026-05-01",
-    validUntil: "2026-10-20",
-    imageUrl: "https://picsum.photos/400/300?random=3",
-    isActive: true,
-    categories: ['restaurant']
-  },
-  {
-    id: "4",
-    ownerUid: MOCK_OWNER_UID,
-    title: "Hospedagem com Café",
-    description: "Fique 3 noites e pague 2. Café da manhã tropical incluso.",
-    discount: "3x2 Diárias",
-    merchantName: "Pousada Brisa do Mar",
-    validFrom: "2026-01-01",
-    validUntil: "2026-12-31",
-    imageUrl: "https://picsum.photos/400/300?random=4",
-    isActive: true,
-    categories: ['lodging']
-  }
-];
+/** Sem Firebase: lista vazia (sem ofertas de exemplo no repositório). */
+let MOCK_OFFERS: Offer[] = [];
 
-let MOCK_COUPONS: Coupon[] = [
-  {
-    id: "DEMO-C1",
-    offerId: "1",
-    offerTitle: "Caipirinha em Dobro",
-    discount: "2 por 1",
-    userEmail: "tatiana@demo.com",
-    createdAt: 1_700_000_000_000,
-    status: "USED",
-    merchantUid: MOCK_OWNER_UID
-  },
-  {
-    id: "DEMO-C2",
-    offerId: "2",
-    offerTitle: "Aula de Surf Iniciante",
-    discount: "20% OFF",
-    userEmail: "tatiana@demo.com",
-    createdAt: 1_700_000_100_000,
-    status: "VALID",
-    merchantUid: MOCK_OWNER_UID
-  },
-  {
-    id: "DEMO-C3",
-    offerId: "3",
-    offerTitle: "Jantar de Frutos do Mar",
-    discount: "15% OFF",
-    userEmail: "tatiana@demo.com",
-    createdAt: 1_700_000_200_000,
-    status: "USED",
-    merchantUid: MOCK_OWNER_UID
-  },
-  {
-    id: "DEMO-C4",
-    offerId: "1",
-    offerTitle: "Caipirinha em Dobro",
-    discount: "2 por 1",
-    userEmail: "joana@demo.com",
-    createdAt: 1_700_000_300_000,
-    status: "VALID",
-    merchantUid: MOCK_OWNER_UID
-  },
-  {
-    id: "DEMO-C5",
-    offerId: "2",
-    offerTitle: "Aula de Surf Iniciante",
-    discount: "20% OFF",
-    userEmail: "joana@demo.com",
-    createdAt: 1_700_000_400_000,
-    status: "VALID",
-    merchantUid: MOCK_OWNER_UID
-  }
-];
+/** Sem Firebase: sem cupons de exemplo. */
+let MOCK_COUPONS: Coupon[] = [];
 
 /** Erro quando a oferta esgotou cupons ou está inativa (turista). */
 export const COUPON_SOLD_OUT = "COUPON_SOLD_OUT";
@@ -149,6 +55,71 @@ export const COUPON_ALREADY_CLAIMED = "COUPON_ALREADY_CLAIMED";
 
 /** Campo de e-mail vazio ao gerar cupom (obrigatório preencher algo). */
 export const COUPON_INVALID_EMAIL = "COUPON_INVALID_EMAIL";
+
+/** Oferta ainda não entrou em vigência (validFrom > hoje local). */
+export const COUPON_OFFER_NOT_YET_VALID = "COUPON_OFFER_NOT_YET_VALID";
+
+export function localDateYmd(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function parseBoolishField(v: unknown): boolean | undefined {
+  if (v == null) return undefined;
+  if (typeof v === "boolean") return v;
+  if (typeof v === "string") return v === "true" || v === "1";
+  if (typeof v === "number") return v !== 0;
+  return undefined;
+}
+
+/** Valor efetivo gravado no Firestore: intenção + vigência local + limite de cupons. */
+export function computePersistedIsActive(args: {
+  publishIntent: boolean;
+  validFrom?: string;
+  validUntil: string;
+  nowYmd: string;
+  couponsIssued: number;
+  maxCoupons?: number;
+}): boolean {
+  if (!args.publishIntent) return false;
+  const vuRaw =
+    toCanonicalYmd(args.validUntil) ??
+    (typeof args.validUntil === "string"
+      ? args.validUntil.trim().slice(0, 10)
+      : String(args.validUntil ?? "").trim().slice(0, 10));
+  if (!vuRaw || !/^\d{4}-\d{2}-\d{2}$/.test(vuRaw)) return false;
+  if (vuRaw < args.nowYmd) return false;
+  const vf = args.validFrom ? (toCanonicalYmd(args.validFrom) ?? args.validFrom) : undefined;
+  if (vf && vf > args.nowYmd) return false;
+  const mc = args.maxCoupons;
+  const issued = args.couponsIssued ?? 0;
+  const hasLimit = mc != null && mc >= 5;
+  if (hasLimit && issued >= mc) return false;
+  return true;
+}
+
+/** Compara com o boolean gravado no doc (legado true se ausente). */
+function parseStoredIsActiveFromRaw(data: Record<string, unknown>): boolean {
+  const v = data.isActive;
+  if (typeof v === "boolean") return v;
+  if (typeof v === "string") return v === "true" || v === "1";
+  if (typeof v === "number") return v !== 0;
+  if (v == null) return true;
+  return true;
+}
+
+/** Bloqueia cupom fora da vigência (datas locais, alinhado à home). */
+function assertOfferDatesAllowCoupon(offer: Offer): void {
+  const nowYmd = localDateYmd();
+  const vf = offer.validFrom ? toCanonicalYmd(offer.validFrom as unknown) : undefined;
+  const vu = toCanonicalYmd(offer.validUntil as unknown);
+  if (vu && vu < nowYmd) {
+    throw new Error(COUPON_SOLD_OUT);
+  }
+  if (vf && vf > nowYmd) {
+    throw new Error(COUPON_OFFER_NOT_YET_VALID);
+  }
+}
 
 /** Texto gravado no cupom: trim; formato livre (aceita qualquer texto não vazio). */
 export function normalizeCouponEmail(email: string): string {
@@ -220,7 +191,23 @@ export function toCanonicalYmd(v: unknown): string | undefined {
   return undefined;
 }
 
-/** Normaliza campos numéricos ao ler `offers` do Firestore. */
+export function computePersistedIsActiveFromOffer(o: Offer): boolean {
+  const vuRaw = o.validUntil as unknown;
+  const vu = toCanonicalYmd(vuRaw) ?? (typeof vuRaw === "string" ? vuRaw.trim().slice(0, 10) : "");
+  const vf = o.validFrom ? toCanonicalYmd(o.validFrom as unknown) : undefined;
+  const issued = coerceNumberField(o.couponsIssued as unknown) ?? 0;
+  const mc = coerceNumberField(o.maxCoupons as unknown);
+  return computePersistedIsActive({
+    publishIntent: o.publishIntent !== false,
+    validFrom: vf,
+    validUntil: vu || "",
+    nowYmd: localDateYmd(),
+    couponsIssued: issued,
+    maxCoupons: mc
+  });
+}
+
+/** Normaliza oferta do Firestore (datas, publishIntent legado, isActive efetivo). */
 export function normalizeOfferFromFirestore(id: string, data: Record<string, unknown>): Offer {
   const o = { id, ...data } as Offer;
   const mc = coerceNumberField(data.maxCoupons);
@@ -231,9 +218,10 @@ export function normalizeOfferFromFirestore(id: string, data: Record<string, unk
   if (vf !== undefined) o.validFrom = vf;
   const vu = toCanonicalYmd(data.validUntil) ?? toCanonicalYmd(o.validUntil as unknown);
   if (vu !== undefined) o.validUntil = vu;
-  if (typeof data.isActive === "string") {
-    o.isActive = data.isActive === "true" || data.isActive === "1";
-  }
+  const pPub = parseBoolishField(data.publishIntent);
+  const pAct = parseBoolishField(data.isActive);
+  o.publishIntent = pPub !== undefined ? pPub : pAct !== false;
+  o.isActive = computePersistedIsActiveFromOffer(o);
   return o;
 }
 
@@ -264,25 +252,39 @@ export const countCouponsForOffer = async (offerId: string): Promise<number> => 
   return MOCK_COUPONS.filter((c) => c.offerId === offerId).length;
 };
 
-/** Ofertas públicas (home): apenas documentos ativos; filtro de datas continua no cliente. */
-export const getPublicOffers = async (): Promise<Offer[]> => {
-  const now = new Date().toISOString().split('T')[0];
+/** Mescla queries por isActive (boolean true, string "true", int 1 — legado/Console). */
+function mergeActiveOfferDocs(...groups: QueryDocumentSnapshot[][]): Offer[] {
+  const byId = new Map<string, Offer>();
+  for (const group of groups) {
+    for (const d of group) {
+      byId.set(d.id, normalizeOfferFromFirestore(d.id, d.data() as Record<string, unknown>));
+    }
+  }
+  return Array.from(byId.values());
+}
 
+/**
+ * Ofertas públicas (home): documentos com isActive true (boolean) ou "true" (string no Console).
+ * A query precisa filtrar por isActive — senão, para usuário anônimo, o Firestore
+ * rejeita listagens na coleção inteira (regras não são "filtro" pós-query).
+ * Ofertas legadas sem o campo: rodar `npm run backfill:isactive`.
+ */
+export const getPublicOffers = async (): Promise<Offer[]> => {
   if (isFirebaseConfigured()) {
-    const q = query(collection(db, "offers"), where("isActive", "==", true));
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map((d) =>
-      normalizeOfferFromFirestore(d.id, d.data() as Record<string, unknown>)
-    );
+    const col = collection(db, "offers");
+    const qBool = query(col, where("isActive", "==", true));
+    const qStr = query(col, where("isActive", "==", "true"));
+    const qInt = query(col, where("isActive", "==", 1));
+    const [snapBool, snapStr, snapInt] = await Promise.all([
+      getDocs(qBool),
+      getDocs(qStr),
+      getDocs(qInt)
+    ]);
+    return mergeActiveOfferDocs(snapBool.docs, snapStr.docs, snapInt.docs);
   }
 
   await new Promise(r => setTimeout(r, 500));
-  MOCK_OFFERS.forEach(offer => {
-    if (offer.isActive && offer.validUntil < now) {
-      offer.isActive = false;
-    }
-  });
-  return [...MOCK_OFFERS].filter(o => o.isActive);
+  return MOCK_OFFERS.filter((o) => computePersistedIsActiveFromOffer(o));
 };
 
 /** Home pública: atualização em tempo real quando cupons são gerados (Firestore). */
@@ -291,19 +293,77 @@ export const subscribePublicOffers = (callback: (offers: Offer[]) => void): (() 
     getPublicOffers().then(callback);
     return () => {};
   }
-  const q = query(collection(db, "offers"), where("isActive", "==", true));
-  return onSnapshot(q, (snapshot) => {
-    callback(
-      snapshot.docs.map((d) => normalizeOfferFromFirestore(d.id, d.data() as Record<string, unknown>))
-    );
-  });
+  const col = collection(db, "offers");
+  const qBool = query(col, where("isActive", "==", true));
+  const qStr = query(col, where("isActive", "==", "true"));
+  const qInt = query(col, where("isActive", "==", 1));
+  let docsBool: QueryDocumentSnapshot[] = [];
+  let docsStr: QueryDocumentSnapshot[] = [];
+  let docsInt: QueryDocumentSnapshot[] = [];
+  const emit = () => {
+    callback(mergeActiveOfferDocs(docsBool, docsStr, docsInt));
+  };
+  const onErr = (err: unknown) => console.error("[subscribePublicOffers]", err);
+  const unsub1 = onSnapshot(
+    qBool,
+    (snap) => {
+      docsBool = snap.docs;
+      emit();
+    },
+    onErr
+  );
+  const unsub2 = onSnapshot(
+    qStr,
+    (snap) => {
+      docsStr = snap.docs;
+      emit();
+    },
+    onErr
+  );
+  const unsub3 = onSnapshot(
+    qInt,
+    (snap) => {
+      docsInt = snap.docs;
+      emit();
+    },
+    onErr
+  );
+  return () => {
+    unsub1();
+    unsub2();
+    unsub3();
+  };
 };
+
+/** Atualiza `isActive` no Firestore quando vigência/limite mudou o valor efetivo (ex.: virada de dia). */
+async function syncOfferLifecycleForOwner(ownerUid: string): Promise<void> {
+  if (!ownerUid) return;
+  if (!isFirebaseConfigured()) {
+    for (const o of MOCK_OFFERS) {
+      if (o.ownerUid !== ownerUid) continue;
+      const computed = computePersistedIsActiveFromOffer(o);
+      if (o.isActive !== computed) o.isActive = computed;
+    }
+    return;
+  }
+  const q = query(collection(db, "offers"), where("ownerUid", "==", ownerUid));
+  const snap = await getDocs(q);
+  for (const d of snap.docs) {
+    const raw = d.data() as Record<string, unknown>;
+    const o = normalizeOfferFromFirestore(d.id, raw);
+    const stored = parseStoredIsActiveFromRaw(raw);
+    if (stored !== o.isActive) {
+      await updateDoc(d.ref, { isActive: o.isActive });
+    }
+  }
+}
 
 /** Painel do comerciante: só ofertas cujo ownerUid corresponde ao usuário logado. */
 export const getMerchantOffers = async (ownerUid: string): Promise<Offer[]> => {
   if (!ownerUid) return [];
 
   if (isFirebaseConfigured()) {
+    await syncOfferLifecycleForOwner(ownerUid);
     const q = query(collection(db, "offers"), where("ownerUid", "==", ownerUid));
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map((d) =>
@@ -311,6 +371,7 @@ export const getMerchantOffers = async (ownerUid: string): Promise<Offer[]> => {
     );
   }
 
+  await syncOfferLifecycleForOwner(ownerUid);
   await new Promise(r => setTimeout(r, 300));
   return MOCK_OFFERS.filter(o => o.ownerUid === ownerUid);
 };
@@ -335,11 +396,36 @@ export const createOffer = async (
   offer: Omit<Offer, "id">,
   ownerUid: string
 ): Promise<Offer> => {
-  const { maxCoupons: maxRaw, couponsIssued: _drop, ...rest } = offer;
+  const { maxCoupons: maxRaw, couponsIssued: _drop, isActive: _ia, ...rest } = offer;
+  const vfRaw = (rest.validFrom ?? "").trim();
+  const vuRaw = (rest.validUntil ?? "").trim();
+  const publishIntent = rest.publishIntent !== false;
   const hasLimit = typeof maxRaw === "number" && maxRaw >= 5;
+  const nowYmd = localDateYmd();
+  const vfCanon = vfRaw ? toCanonicalYmd(vfRaw) ?? vfRaw.slice(0, 10) : undefined;
+  const vuCanon = toCanonicalYmd(vuRaw) ?? vuRaw.slice(0, 10);
+  const isActive = computePersistedIsActive({
+    publishIntent,
+    validFrom: vfCanon,
+    validUntil: vuCanon,
+    nowYmd,
+    couponsIssued: 0,
+    maxCoupons: hasLimit ? maxRaw : undefined
+  });
+  const restClipped = {
+    ...rest,
+    validFrom: vfCanon || undefined,
+    validUntil: vuCanon,
+    title: clipString((rest.title ?? "").trim(), OFFER_TITLE_MAX),
+    description: clipString((rest.description ?? "").trim(), OFFER_DESCRIPTION_MAX),
+    discount: clipString((rest.discount ?? "").trim(), OFFER_DISCOUNT_MAX),
+    merchantName: clipString((rest.merchantName ?? "").trim(), COMPANY_NAME_MAX),
+    publishIntent,
+    isActive
+  };
   const payload: Omit<Offer, "id"> & { ownerUid: string } = hasLimit
-    ? { ...rest, ownerUid, maxCoupons: maxRaw, couponsIssued: 0 }
-    : { ...rest, ownerUid };
+    ? { ...restClipped, ownerUid, maxCoupons: maxRaw, couponsIssued: 0 }
+    : { ...restClipped, ownerUid };
 
   if (isFirebaseConfigured()) {
     const docRef = await addDoc(collection(db, "offers"), payload);
@@ -360,12 +446,12 @@ function omitUndefined<T extends Record<string, unknown>>(obj: T): Record<string
   return out;
 }
 
-/** Após criar a oferta, só vigência e limite de cupons (e isActive derivado disso) podem ser alterados pelo painel. */
+/** Após criar a oferta, só vigência e limite de cupons (e publishIntent; isActive é recalculado) podem ser alterados pelo painel. */
 const OFFER_UPDATE_ALLOWED: (keyof Offer)[] = [
   "validFrom",
   "validUntil",
   "maxCoupons",
-  "isActive",
+  "publishIntent",
   "couponsIssued"
 ];
 
@@ -384,6 +470,7 @@ export const updateOffer = async (id: string, offer: OfferUpdateInput): Promise<
   let patch: Partial<Offer> = stripOfferInternalFields(raw);
   /** Desconto/tipo de promo é fixo após criar a oferta; nunca persistir alterações via update. */
   delete patch.discount;
+  delete patch.isActive;
   patch = pickAllowedOfferPatch(patch);
   if (syncCouponsIssued != null) {
     patch = { ...patch, couponsIssued: syncCouponsIssued };
@@ -391,33 +478,53 @@ export const updateOffer = async (id: string, offer: OfferUpdateInput): Promise<
 
   if (isFirebaseConfigured()) {
     const ref = doc(db, "offers", id);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) {
+      console.warn(`Offer ${id} not found.`);
+      return;
+    }
+    const current = normalizeOfferFromFirestore(id, snap.data() as Record<string, unknown>);
+
     if (removeCouponLimit) {
+      const merged: Offer = {
+        ...current,
+        ...patch,
+        maxCoupons: undefined,
+        couponsIssued: undefined
+      };
+      const isActive = computePersistedIsActiveFromOffer(merged);
       const cleaned = omitUndefined(patch as Record<string, unknown>);
       await updateDoc(ref, {
         ...cleaned,
         maxCoupons: deleteField(),
-        couponsIssued: deleteField()
-      });
+        couponsIssued: deleteField(),
+        isActive
+      } as Record<string, unknown>);
       return;
     }
-    const toWrite = omitUndefined(patch as Record<string, unknown>);
-    if (Object.keys(toWrite).length > 0) {
-      await updateDoc(ref, toWrite as Record<string, unknown>);
-    }
+
+    const merged: Offer = { ...current, ...patch };
+    const isActive = computePersistedIsActiveFromOffer(merged);
+    const cleaned = omitUndefined(patch as Record<string, unknown>);
+    await updateDoc(ref, { ...cleaned, isActive } as Record<string, unknown>);
   } else {
     const index = MOCK_OFFERS.findIndex((o) => o.id === id);
-    if (index !== -1) {
-      if (removeCouponLimit) {
-        const cur = { ...MOCK_OFFERS[index] };
-        delete cur.maxCoupons;
-        delete cur.couponsIssued;
-        MOCK_OFFERS[index] = { ...cur, ...patch };
-      } else {
-        MOCK_OFFERS[index] = { ...MOCK_OFFERS[index], ...patch };
-      }
-    } else {
+    if (index === -1) {
       console.warn(`Offer with id ${id} not found in mock data.`);
+      return;
     }
+    let merged: Offer = { ...MOCK_OFFERS[index] };
+    if (removeCouponLimit) {
+      delete merged.maxCoupons;
+      delete merged.couponsIssued;
+    }
+    merged = { ...merged, ...patch };
+    if (removeCouponLimit) {
+      merged.maxCoupons = undefined;
+      merged.couponsIssued = undefined;
+    }
+    merged.isActive = computePersistedIsActiveFromOffer(merged);
+    MOCK_OFFERS[index] = merged;
   }
 };
 
@@ -659,6 +766,8 @@ export const generateCoupon = async (
     throw new Error(COUPON_INVALID_EMAIL);
   }
 
+  assertOfferDatesAllowCoupon(offer);
+
   const merchantUid = offer.ownerUid?.trim() || "";
   const newCouponData: Omit<Coupon, "id"> = {
     offerId: offer.id,
@@ -694,12 +803,13 @@ export const generateCoupon = async (
           throw new Error(COUPON_SOLD_OUT);
         }
         const issued = coerceNumberField(odRaw.couponsIssued) ?? 0;
-        const isAct = odRaw.isActive === true;
-        if (!isAct || issued >= mc) {
+        const odNorm = normalizeOfferFromFirestore(offer.id, odRaw);
+        if (!odNorm.isActive || issued >= mc) {
           throw new Error(COUPON_SOLD_OUT);
         }
         const newIssued = issued + 1;
-        const stillActive = newIssued < mc;
+        const mergedAfter = { ...odNorm, couponsIssued: newIssued };
+        const stillActive = computePersistedIsActiveFromOffer(mergedAfter);
         const couponRef = doc(collection(db, "coupons"));
         transaction.set(lockRef, {
           offerId: offer.id,
@@ -753,7 +863,7 @@ export const generateCoupon = async (
       throw new Error(COUPON_SOLD_OUT);
     }
     o.couponsIssued = issued + 1;
-    o.isActive = o.couponsIssued < mc;
+    o.isActive = computePersistedIsActiveFromOffer(o);
     const coupon = {
       ...newCouponData,
       id: `CPN-${Math.random().toString(36).substr(2, 6).toUpperCase()}`

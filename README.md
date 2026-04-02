@@ -37,7 +37,7 @@ npm install
 npm run dev
 ```
 
-Acesse `http://localhost:3000`. Sem as credenciais Firebase, o app roda em **modo demo** com dados mock (ofertas de exemplo, dados em memória).
+Acesse `http://localhost:3000`. Sem as credenciais Firebase, o app roda em **modo demo** com dados mock em memória (sem ofertas/cupons pré-carregados).
 
 ---
 

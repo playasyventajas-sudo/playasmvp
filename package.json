@@ -9,7 +9,11 @@
     "preview": "vite preview",
     "deploy:playas": "npm run build && firebase deploy --only firestore:rules,storage,hosting --project playas-e-ventajas",
     "seed:qa": "node scripts/seed-qa-demo.mjs",
-    "update:qa-images": "node scripts/update-qa-offer-images.mjs"
+    "update:qa-images": "node scripts/update-qa-offer-images.mjs",
+    "cleanup:firestore": "node scripts/firestore-delete-non-owner.mjs",
+    "cleanup:qa": "node scripts/delete-qa-test-data.mjs",
+    "cleanup:qa:login": "node scripts/delete-qa-with-firebase-user-token.mjs",
+    "backfill:isactive": "node scripts/backfill-offers-isactive.mjs"
   },
   "dependencies": {
     "firebase": "^12.8.0",
@@ -22,6 +26,7 @@
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.4.24",
+    "firebase-admin": "^13.7.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.19",
     "typescript": "~5.8.2",

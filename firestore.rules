@@ -2,8 +2,12 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /offers/{offerId} {
-      // Público: só ofertas ativas. Dono: lê todas as suas (ativas ou não).
+      // Público: isActive boolean true, string "true" (Console/legado), ou sem campo (legado).
+      // Com isActive == false, anônimo não lê. Dono lê todas as suas.
       allow read: if resource.data.isActive == true
+        || resource.data.isActive == 'true'
+        || resource.data.isActive == 1
+        || !resource.data.keys().hasAny(['isActive'])
         || (request.auth != null && resource.data.ownerUid == request.auth.uid);
       allow create: if request.auth != null
         && request.resource.data.ownerUid == request.auth.uid
@@ -26,8 +30,9 @@ service cloud.firestore {
                     : 0) + 1
             && request.resource.data.maxCoupons == resource.data.maxCoupons
             && request.resource.data.ownerUid == resource.data.ownerUid
-            && request.resource.data.isActive
-                == (request.resource.data.couponsIssued < request.resource.data.maxCoupons));
+            // isActive efetivo pode ser false com cupons restantes (vigência/pausa); ou false quando esgotado.
+            && (request.resource.data.isActive == (request.resource.data.couponsIssued < request.resource.data.maxCoupons)
+                || request.resource.data.isActive == false));
       allow delete: if request.auth != null
         && resource.data.ownerUid == request.auth.uid;
     }
@@ -50,8 +55,11 @@ service cloud.firestore {
         && request.resource.data.offerId is string
         && request.resource.data.createdAt is number
         && request.resource.data.merchantUid is string;
-      allow read: if request.auth != null;
+      // So o comerciante dono do cupom le (evita listar cupons de outros / vazar e-mails).
+      allow read: if request.auth != null
+        && resource.data.merchantUid == request.auth.uid;
       allow update: if request.auth != null
+        && resource.data.merchantUid == request.auth.uid
         && resource.data.status == 'VALID'
         && request.resource.data.status == 'USED';
     }

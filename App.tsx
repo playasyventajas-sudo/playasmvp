@@ -1,18 +1,37 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { FirebaseError } from 'firebase/app';
 import { Offer, Coupon, UserRole, CompanyUser, Category, ConsumerStat, ConsumerEmailAggregate } from './types';
-import { getPublicOffers, subscribePublicOffers, getMerchantOffers, getMerchantConsumerDashboard, createOffer, updateOffer, deleteOffer, generateCoupon, validateCoupon, uploadImage, countCouponsForOffer, getOfferCouponLimitInfo, toCanonicalYmd, COUPON_SOLD_OUT, COUPON_ALREADY_CLAIMED, COUPON_INVALID_EMAIL } from './services/dataService';
+import { getPublicOffers, subscribePublicOffers, getMerchantOffers, getMerchantConsumerDashboard, createOffer, updateOffer, deleteOffer, generateCoupon, validateCoupon, uploadImage, countCouponsForOffer, getOfferCouponLimitInfo, toCanonicalYmd, COUPON_SOLD_OUT, COUPON_ALREADY_CLAIMED, COUPON_INVALID_EMAIL, COUPON_OFFER_NOT_YET_VALID } from './services/dataService';
 import type { OfferUpdateInput } from './services/dataService';
 import { safeImageUrl } from './utils/safeUrl';
 import { subscribeToAuthChanges, logoutCompany, updateCompanyDisplayName } from './services/authService';
 import { QRCodeCanvas } from 'qrcode.react';
-import { IconPalm, IconQrCode, IconCamera, IconTrash, IconInfo, IconFileText, IconCheck, IconX } from './components/Icons';
+import { IconPalm, IconQrCode, IconCamera, IconTrash, IconInfo, IconFileText } from './components/Icons';
 import { translations, Language } from './src/translations';
+import {
+  clipString,
+  COMPANY_NAME_MAX,
+  OFFER_DESCRIPTION_MAX,
+  OFFER_DISCOUNT_DEAL_TEXT_MAX,
+  OFFER_DISCOUNT_MAX,
+  OFFER_TITLE_MAX
+} from './src/offerLimits';
+import {
+  type PromoKind,
+  buildDiscountFromPromo,
+  clipPercentDigits,
+  clipPriceReaisDigits,
+  formatDiscountForDisplay
+} from './src/offerPromo';
 import { LoginPanel } from './components/Auth';
+import { isFirebaseConfigured } from './services/firebaseConfig';
 import jsQR from 'jsqr';
 
 /** Quantidade de linhas da base de clientes antes do “Ver mais”. */
 const CUSTOMER_LIST_PREVIEW = 10;
+
+const SS_VIEW = "playas_ev_view";
+const SS_MERCHANT_TAB = "playas_ev_merchant_tab";
 
 function localDateYmd(): string {
   const d = new Date();
@@ -104,7 +123,7 @@ const OfferCard: React.FC<{ offer: Offer, onGetCoupon: (o: Offer) => void, lang:
       {offer.discount && (
         <div className="mb-3">
           <span className="bg-sand-100 text-sand-700 text-xs font-bold px-2 py-1 rounded-md uppercase tracking-wide">
-            {offer.discount}
+            {formatDiscountForDisplay(offer.discount)}
           </span>
         </div>
       )}
@@ -119,9 +138,9 @@ const OfferCard: React.FC<{ offer: Offer, onGetCoupon: (o: Offer) => void, lang:
                 .replace("{remaining}", String(remaining))
                 .replace("{total}", String(max))}
             </span>
-            {remaining > 0 && remaining <= 2 && (
+            {remaining > 0 && remaining <= 5 && (
               <span className="text-[10px] font-bold uppercase tracking-wide text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">
-                {t.couponsFewLeft}
+                {remaining === 1 ? t.couponsLastOne : t.couponsFewLeft}
               </span>
             )}
           </div>
@@ -187,6 +206,7 @@ const CouponModal = ({
         if (m === COUPON_SOLD_OUT) alert(t.soldOut);
         else if (m === COUPON_ALREADY_CLAIMED) alert(t.alreadyClaimed);
         else if (m === COUPON_INVALID_EMAIL) alert(t.invalidEmail);
+        else if (m === COUPON_OFFER_NOT_YET_VALID) alert(t.notYetValid);
         else if (error instanceof FirebaseError) {
           alert(`${t.error}\n\n${error.code}: ${error.message}`);
         } else {
@@ -294,8 +314,13 @@ const AdminPanel = ({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [newOffer, setNewOffer] = useState<Partial<Offer>>({
-    title: '', description: '', discount: '', validFrom: '', validUntil: '', imageUrl: '', isActive: true, categories: []
+    title: '', description: '', discount: '', validFrom: '', validUntil: '', imageUrl: '', publishIntent: true, categories: []
   });
+  const [promoKind, setPromoKind] = useState<PromoKind>('percent');
+  const [promoPercent, setPromoPercent] = useState('');
+  const [promoPriceFrom, setPromoPriceFrom] = useState('');
+  const [promoPriceTo, setPromoPriceTo] = useState('');
+  const [promoDealText, setPromoDealText] = useState('');
   const [profileName, setProfileName] = useState(user.companyName);
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileMsg, setProfileMsg] = useState<'ok' | 'err' | null>(null);
@@ -328,10 +353,33 @@ const AdminPanel = ({
     setProfileName(user.companyName);
   }, [user.companyName]);
 
+  const resetPromoFields = () => {
+    setPromoKind('percent');
+    setPromoPercent('');
+    setPromoPriceFrom('');
+    setPromoPriceTo('');
+    setPromoDealText('');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    let builtDiscount: string | null = null;
     if (!editingId) {
-      if (!newOffer.title?.trim() || !newOffer.discount?.trim()) return;
+      if (!newOffer.title?.trim()) return;
+      if (!newOffer.categories?.length) {
+        alert(t.categoryRequired);
+        return;
+      }
+      builtDiscount = buildDiscountFromPromo(promoKind, {
+        percentDigits: promoPercent,
+        priceFrom: promoPriceFrom,
+        priceTo: promoPriceTo,
+        dealText: promoDealText
+      });
+      if (!builtDiscount) {
+        alert(t.promoInvalid);
+        return;
+      }
     }
 
     const mc = newOffer.maxCoupons;
@@ -354,14 +402,18 @@ const AdminPanel = ({
     const offerData: Partial<Offer> = {
       ...newOffer,
       imageUrl: newOffer.imageUrl || `https://picsum.photos/400/300?random=${Date.now()}`,
-      categories: newOffer.categories || ['other']
+      categories: !editingId ? (newOffer.categories as Category[]) : (newOffer.categories?.length ? newOffer.categories : ['other'])
     };
+    if (!editingId && builtDiscount) {
+      offerData.discount = builtDiscount;
+    }
     if (mc == null) {
       delete offerData.maxCoupons;
       delete offerData.couponsIssued;
     }
 
     offerData.merchantName = user.companyName;
+    offerData.publishIntent = newOffer.publishIntent !== false;
 
     try {
       if (editingId) {
@@ -370,21 +422,14 @@ const AdminPanel = ({
 
         const hadLimit = prev.maxCoupons != null && prev.maxCoupons >= 5;
         const hasLimitNow = mc != null && mc >= 5;
-        const wantPublished = newOffer.isActive !== false;
-        const prevIssued = prev.couponsIssued ?? 0;
-        /** Estava esgotado ou acima do teto anterior (ex.: emitidos 10 com máx 5). Subir o máximo acima dos emitidos deve voltar a publicar. */
-        const wasAtOrOverPreviousCap =
-          hadLimit &&
-          prev.maxCoupons != null &&
-          prev.maxCoupons >= 5 &&
-          prevIssued >= prev.maxCoupons;
+        const wantPublished = newOffer.publishIntent !== false;
 
         if (hadLimit && !hasLimitNow) {
           await updateOffer(editingId, {
             validFrom: vf,
             validUntil: vu,
             removeCouponLimit: true,
-            isActive: wantPublished
+            publishIntent: wantPublished
           } as OfferUpdateInput);
         } else if (!hadLimit && hasLimitNow) {
           const cnt = await countCouponsForOffer(editingId);
@@ -393,24 +438,16 @@ const AdminPanel = ({
             validUntil: vu,
             maxCoupons: mc,
             syncCouponsIssued: cnt,
-            isActive: cnt >= (mc as number) ? false : wantPublished
+            publishIntent: wantPublished
           } as OfferUpdateInput);
         } else {
           const patch: OfferUpdateInput = {
             validFrom: vf,
-            validUntil: vu
+            validUntil: vu,
+            publishIntent: wantPublished
           };
           if (hasLimitNow && mc != null) {
             patch.maxCoupons = mc;
-            if (prevIssued >= mc) {
-              patch.isActive = false;
-            } else if (wasAtOrOverPreviousCap) {
-              patch.isActive = true;
-            } else {
-              patch.isActive = wantPublished;
-            }
-          } else {
-            patch.isActive = wantPublished;
           }
           await updateOffer(editingId, patch);
         }
@@ -419,7 +456,8 @@ const AdminPanel = ({
       }
       setIsAdding(false);
       setEditingId(null);
-      setNewOffer({ title: '', description: '', discount: '', validFrom: '', validUntil: '', imageUrl: '', isActive: true, categories: [] });
+      resetPromoFields();
+      setNewOffer({ title: '', description: '', discount: '', validFrom: '', validUntil: '', imageUrl: '', publishIntent: true, categories: [] });
       refresh();
     } catch (err) {
       console.error(err);
@@ -487,7 +525,8 @@ const AdminPanel = ({
   const cancelEdit = () => {
     setIsAdding(false);
     setEditingId(null);
-    setNewOffer({ title: '', description: '', discount: '', validFrom: '', validUntil: '', imageUrl: '', isActive: true, categories: [] });
+    resetPromoFields();
+    setNewOffer({ title: '', description: '', discount: '', validFrom: '', validUntil: '', imageUrl: '', publishIntent: true, categories: [] });
   };
 
   const categoriesList: Category[] = ['bar', 'restaurant', 'experience', 'lodging', 'other'];
@@ -540,7 +579,21 @@ const AdminPanel = ({
           )}
           <button
             type="button"
-            onClick={() => setIsAdding(true)}
+            onClick={() => {
+              setEditingId(null);
+              resetPromoFields();
+              setNewOffer({
+                title: '',
+                description: '',
+                discount: '',
+                validFrom: '',
+                validUntil: '',
+                imageUrl: '',
+                publishIntent: true,
+                categories: []
+              });
+              setIsAdding(true);
+            }}
             disabled={isAdding}
             className="bg-sea-600 text-white px-4 py-2 rounded-lg shadow transition-colors whitespace-nowrap disabled:pointer-events-none disabled:opacity-40 hover:bg-sea-700 enabled:hover:bg-sea-700"
           >
@@ -558,9 +611,13 @@ const AdminPanel = ({
             <input
               type="text"
               className="w-full border p-2 rounded"
+              maxLength={COMPANY_NAME_MAX}
               value={profileName}
-              onChange={(e) => setProfileName(e.target.value)}
+              onChange={(e) => setProfileName(clipString(e.target.value, COMPANY_NAME_MAX))}
             />
+            <p className="text-xs text-gray-400 mt-1">
+              {t.charCounter.replace('{used}', String([...profileName].length)).replace('{max}', String(COMPANY_NAME_MAX))}
+            </p>
           </div>
           <button
             type="button"
@@ -600,7 +657,7 @@ const AdminPanel = ({
             <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:gap-4">
               <label
                 className={`flex-1 cursor-pointer rounded-lg border-2 p-4 transition-colors ${
-                  newOffer.isActive !== false
+                  newOffer.publishIntent !== false
                     ? 'border-sea-600 bg-white shadow-sm'
                     : 'border-gray-200 bg-white hover:border-gray-300'
                 }`}
@@ -609,15 +666,15 @@ const AdminPanel = ({
                   type="radio"
                   name="offerVisibility"
                   className="sr-only"
-                  checked={newOffer.isActive !== false}
-                  onChange={() => setNewOffer({ ...newOffer, isActive: true })}
+                  checked={newOffer.publishIntent !== false}
+                  onChange={() => setNewOffer({ ...newOffer, publishIntent: true })}
                 />
                 <span className="block font-medium text-gray-900">{t.visibilityPublishedTitle}</span>
                 <span className="mt-1 block text-xs text-gray-600">{t.visibilityPublishedDesc}</span>
               </label>
               <label
                 className={`flex-1 cursor-pointer rounded-lg border-2 p-4 transition-colors ${
-                  newOffer.isActive === false
+                  newOffer.publishIntent === false
                     ? 'border-amber-500 bg-amber-50/60 shadow-sm'
                     : 'border-gray-200 bg-white hover:border-gray-300'
                 }`}
@@ -626,8 +683,8 @@ const AdminPanel = ({
                   type="radio"
                   name="offerVisibility"
                   className="sr-only"
-                  checked={newOffer.isActive === false}
-                  onChange={() => setNewOffer({ ...newOffer, isActive: false })}
+                  checked={newOffer.publishIntent === false}
+                  onChange={() => setNewOffer({ ...newOffer, publishIntent: false })}
                 />
                 <span className="block font-medium text-gray-900">{t.visibilityPausedTitle}</span>
                 <span className="mt-1 block text-xs text-gray-600">{t.visibilityPausedDesc}</span>
@@ -636,29 +693,158 @@ const AdminPanel = ({
           </fieldset>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input
-              placeholder={t.placeholders.title}
-              className={`border p-2 rounded ${editingId ? 'bg-gray-100 text-gray-700 cursor-not-allowed' : ''}`}
-              value={newOffer.title}
-              onChange={(e) => setNewOffer({ ...newOffer, title: e.target.value })}
-              required={!editingId}
-              disabled={!!editingId}
-              readOnly={!!editingId}
-            />
-            <div className="flex flex-col">
+            <div className="flex flex-col md:col-span-2">
               <input
-                placeholder={t.placeholders.discount}
-                className={`border p-2 rounded ${editingId ? 'bg-gray-100 text-gray-700 cursor-not-allowed opacity-90' : 'bg-white'}`}
-                value={newOffer.discount ?? ''}
-                onChange={(e) => !editingId && setNewOffer({ ...newOffer, discount: e.target.value })}
-                disabled={!!editingId}
+                placeholder={t.placeholders.title}
+                className={`border p-2 rounded ${editingId ? 'bg-gray-100 text-gray-700 cursor-not-allowed' : ''}`}
+                value={newOffer.title}
+                maxLength={OFFER_TITLE_MAX}
+                onChange={(e) =>
+                  setNewOffer({ ...newOffer, title: clipString(e.target.value, OFFER_TITLE_MAX) })
+                }
                 required={!editingId}
-                aria-readonly={!!editingId}
+                disabled={!!editingId}
+                readOnly={!!editingId}
               />
               <span className="text-xs text-gray-400 mt-1">
-                {editingId ? t.discountLockedHint : t.discountFieldHint}
+                {t.charCounter
+                  .replace('{used}', String([...(newOffer.title || '')].length))
+                  .replace('{max}', String(OFFER_TITLE_MAX))}
               </span>
             </div>
+
+            {editingId ? (
+              <div className="flex flex-col md:col-span-2">
+                <label className="text-xs text-gray-500 mb-1">{t.promoLockedLabel}</label>
+                <input
+                  type="text"
+                  className="border p-2 rounded bg-gray-100 text-gray-700 cursor-not-allowed opacity-90 max-w-xl"
+                  value={formatDiscountForDisplay(newOffer.discount ?? '')}
+                  disabled
+                  readOnly
+                  aria-readonly
+                />
+                <span className="text-xs text-gray-400 mt-1">{t.discountLockedHint}</span>
+              </div>
+            ) : (
+              <fieldset className="md:col-span-2 rounded-xl border border-sea-100 bg-sea-50/30 p-4 space-y-4">
+                <legend className="text-sm font-semibold text-sea-900 px-1">{t.promoKindLabel}</legend>
+                <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2">
+                  {(['percent', 'price_pair', 'deal_text'] as PromoKind[]).map((k) => (
+                    <label
+                      key={k}
+                      className={`flex-1 min-w-[140px] cursor-pointer rounded-lg border-2 px-3 py-2 text-sm transition-colors ${
+                        promoKind === k
+                          ? 'border-sea-600 bg-white shadow-sm'
+                          : 'border-gray-200 bg-white hover:border-gray-300'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="promoKind"
+                        className="sr-only"
+                        checked={promoKind === k}
+                        onChange={() => setPromoKind(k)}
+                      />
+                      <span className="font-medium text-gray-900">
+                        {k === 'percent' ? t.promoKindPercent : k === 'price_pair' ? t.promoKindPrice : t.promoKindDeal}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+
+                {promoKind === 'percent' && (
+                  <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+                    <div className="flex flex-col max-w-xs">
+                      <label className="text-xs text-gray-600 mb-1">{t.percentLabel}</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          autoComplete="off"
+                          placeholder="30"
+                          className="border p-2 rounded w-24 text-lg font-semibold"
+                          value={promoPercent}
+                          onChange={(e) => setPromoPercent(clipPercentDigits(e.target.value))}
+                        />
+                        <span className="text-lg font-bold text-sea-700">%</span>
+                      </div>
+                    </div>
+                    {promoPercent && buildDiscountFromPromo('percent', { percentDigits: promoPercent }) && (
+                      <p className="text-sm text-sea-800 bg-white/80 border border-sea-100 rounded-lg px-3 py-2">
+                        <span className="text-gray-500">{t.percentPreview} </span>
+                        <strong>{buildDiscountFromPromo('percent', { percentDigits: promoPercent })}</strong>
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {promoKind === 'price_pair' && (
+                  <div className="space-y-3">
+                    <p className="text-xs text-gray-600">{t.pricePairIntro}</p>
+                    <div className="flex flex-col sm:flex-row gap-4 flex-wrap">
+                      <div className="flex flex-col">
+                        <label className="text-xs text-gray-600 mb-1">{t.priceFromLabel}</label>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          className="border p-2 rounded max-w-[200px]"
+                          placeholder="500"
+                          value={promoPriceFrom}
+                          onChange={(e) => setPromoPriceFrom(clipPriceReaisDigits(e.target.value))}
+                        />
+                      </div>
+                      <div className="flex flex-col">
+                        <label className="text-xs text-gray-600 mb-1">{t.priceToLabel}</label>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          className="border p-2 rounded max-w-[200px]"
+                          placeholder="299"
+                          value={promoPriceTo}
+                          onChange={(e) => setPromoPriceTo(clipPriceReaisDigits(e.target.value))}
+                        />
+                      </div>
+                    </div>
+                    {buildDiscountFromPromo('price_pair', { priceFrom: promoPriceFrom, priceTo: promoPriceTo }) && (
+                      <p className="text-sm text-sea-800 bg-white/80 border border-sea-100 rounded-lg px-3 py-2">
+                        <span className="text-gray-500">{t.percentPreview} </span>
+                        <strong>
+                          {buildDiscountFromPromo('price_pair', {
+                            priceFrom: promoPriceFrom,
+                            priceTo: promoPriceTo
+                          })}
+                        </strong>
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {promoKind === 'deal_text' && (
+                  <div className="flex flex-col">
+                    <label className="text-xs text-gray-600 mb-1">{t.dealLabel}</label>
+                    <input
+                      type="text"
+                      className="border p-2 rounded max-w-xl"
+                      placeholder={t.dealPlaceholder}
+                      maxLength={OFFER_DISCOUNT_DEAL_TEXT_MAX}
+                      value={promoDealText}
+                      onChange={(e) =>
+                        setPromoDealText(clipString(e.target.value, OFFER_DISCOUNT_DEAL_TEXT_MAX))
+                      }
+                    />
+                    <p className="text-xs text-gray-500 mt-1">{t.dealHint}</p>
+                    <span className="text-xs text-gray-400 mt-1">
+                      {t.charCounter
+                        .replace('{used}', String([...promoDealText].length))
+                        .replace('{max}', String(OFFER_DISCOUNT_DEAL_TEXT_MAX))}
+                    </span>
+                  </div>
+                )}
+
+                <p className="text-xs text-gray-500">{t.discountFieldHint}</p>
+              </fieldset>
+            )}
             
             <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="flex flex-col">
@@ -759,15 +945,28 @@ const AdminPanel = ({
               </div>
             </div>
 
-            <textarea
-              placeholder={t.placeholders.desc}
-              className={`border p-2 rounded md:col-span-2 ${editingId ? 'bg-gray-100 text-gray-700 cursor-not-allowed' : ''}`}
-              rows={3}
-              value={newOffer.description}
-              onChange={(e) => setNewOffer({ ...newOffer, description: e.target.value })}
-              disabled={!!editingId}
-              readOnly={!!editingId}
-            />
+            <div className="md:col-span-2 flex flex-col">
+              <textarea
+                placeholder={t.placeholders.desc}
+                className={`border p-2 rounded w-full ${editingId ? 'bg-gray-100 text-gray-700 cursor-not-allowed' : ''}`}
+                rows={4}
+                value={newOffer.description}
+                maxLength={OFFER_DESCRIPTION_MAX}
+                onChange={(e) =>
+                  setNewOffer({
+                    ...newOffer,
+                    description: clipString(e.target.value, OFFER_DESCRIPTION_MAX)
+                  })
+                }
+                disabled={!!editingId}
+                readOnly={!!editingId}
+              />
+              <span className="text-xs text-gray-400 mt-1">
+                {t.charCounter
+                  .replace('{used}', String([...(newOffer.description || '')].length))
+                  .replace('{max}', String(OFFER_DESCRIPTION_MAX))}
+              </span>
+            </div>
           </div>
           <button type="submit" disabled={isUploading} className={`mt-4 px-6 py-2 rounded-lg font-bold text-white ${isUploading ? 'bg-gray-400 cursor-not-allowed' : 'bg-sand-500 hover:bg-sand-400'}`}>{t.save}</button>
         </form>
@@ -837,7 +1036,7 @@ const AdminPanel = ({
                       <img src={safeImageUrl(offer.imageUrl) || 'https://picsum.photos/40/40'} alt="" className="w-10 h-10 rounded-full mr-3 object-cover bg-gray-100" />
                       <div>
                         <div className="text-sm font-medium text-gray-900">{offer.title}</div>
-                        <div className="text-sm text-gray-500">{offer.discount}</div>
+                        <div className="text-sm text-gray-500">{formatDiscountForDisplay(offer.discount)}</div>
                       </div>
                     </div>
                   </td>
@@ -1180,7 +1379,26 @@ const LegalModal = ({ type, onClose, lang }: { type: 'terms' | 'privacy', onClos
 // --- Main App Component ---
 
 const App = () => {
-  const [view, setView] = useState('home');
+  const [view, setViewState] = useState<string>(() => {
+    try {
+      const v = sessionStorage.getItem(SS_VIEW);
+      if (v === "home" || v === "merchant" || v === "how-it-works") return v;
+    } catch {
+      /* ignore */
+    }
+    return "home";
+  });
+  const setView = useCallback((v: string) => {
+    setViewState(v);
+    try {
+      if (v === "home" || v === "merchant" || v === "how-it-works") {
+        sessionStorage.setItem(SS_VIEW, v);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   const [offers, setOffers] = useState<Offer[]>([]);
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
   const [startDate, setStartDate] = useState('');
@@ -1188,7 +1406,25 @@ const App = () => {
   const [legalModal, setLegalModal] = useState<'terms' | 'privacy' | null>(null);
   const [lang, setLang] = useState<Language>('pt');
   const [user, setUser] = useState<CompanyUser | null>(null);
-  const [merchantTab, setMerchantTab] = useState<'offers' | 'scanner'>('offers');
+  /** Primeira resolução do Firebase Auth (evita mostrar login antes de saber se há sessão). */
+  const [authReady, setAuthReady] = useState(() => !isFirebaseConfigured());
+  const [merchantTab, setMerchantTabState] = useState<"offers" | "scanner">(() => {
+    try {
+      const t = sessionStorage.getItem(SS_MERCHANT_TAB);
+      if (t === "offers" || t === "scanner") return t;
+    } catch {
+      /* ignore */
+    }
+    return "offers";
+  });
+  const setMerchantTab = useCallback((v: "offers" | "scanner") => {
+    setMerchantTabState(v);
+    try {
+      sessionStorage.setItem(SS_MERCHANT_TAB, v);
+    } catch {
+      /* ignore */
+    }
+  }, []);
   const [selectedCategories, setSelectedCategories] = useState<Category[]>([]);
   const t = translations[lang];
   const tCats = translations[lang].categories;
@@ -1197,6 +1433,7 @@ const App = () => {
     const unsubOffers = subscribePublicOffers(setOffers);
     const unsubAuth = subscribeToAuthChanges((u) => {
       setUser(u);
+      setAuthReady(true);
     });
     return () => {
       unsubOffers();
@@ -1221,9 +1458,9 @@ const App = () => {
   const filteredOffers = offers.filter(offer => {
     const now = localDateYmd();
     const until = toCanonicalYmd(offer.validUntil as unknown);
-    if (!until || until < now) return false;
-    const from = offer.validFrom ? toCanonicalYmd(offer.validFrom as unknown) : undefined;
-    if (from && from > now) return false;
+    // Só esconde por fim de vigência quando a data existe e já passou (legado sem validUntil parseável continua visível).
+    if (until && until < now) return false;
+    // validFrom no futuro: oferta continua visível; cupom só pode ser gerado a partir da data (generateCoupon).
     if (!offer.isActive) return false;
     if (selectedCategories.length > 0) {
       if (!offer.categories || !offer.categories.some(c => selectedCategories.includes(c))) return false;
@@ -1310,7 +1547,12 @@ const App = () => {
         )}
 
         {view === 'merchant' && (
-          !user ? (
+          !authReady ? (
+            <div className="flex flex-col items-center justify-center py-24 px-4" aria-busy="true">
+              <div className="h-10 w-10 border-2 border-sea-200 border-t-sea-600 rounded-full animate-spin mb-4" />
+              <p className="text-sm text-gray-600">{t.auth.sessionLoading}</p>
+            </div>
+          ) : !user ? (
             <LoginPanel lang={lang} onLogin={setUser} />
           ) : (
             <div className="animate-fadeIn">
