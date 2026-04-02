@@ -12,16 +12,17 @@ Aplicação web progressiva (PWA) que conecta turistas a ofertas exclusivas em e
 
 ### Para Turistas
 - Visualização de ofertas com filtros por categoria (Bar, Restaurante, Experiência, Hospedagem, Outros)
-- Geração de cupom via QR Code (requer apenas e-mail)
+- Quando o comerciante define limite de cupons (QR), o card da oferta mostra **quantos restam** e atualiza em **tempo real** (Firestore `onSnapshot`)
+- Geração de cupom via QR Code (e-mail obrigatório no campo)
 - Interface responsiva e multilíngue (PT, EN, ES)
 - Mensagem de gamificação incentivando uso recorrente do mesmo e-mail
 
 ### Para Empresas (Área do Comerciante)
 - Login e cadastro seguro
 - Painel administrativo: criar, editar e excluir ofertas
-- Upload de imagens (máx. 2MB) — Firebase Storage em produção
+- Upload de imagens (máx. 2MB): Firebase Storage em produção
 - Definir validade, categorias e status (Ativo/Inativo)
-- **Limite opcional de cupons (QR):** número inteiro mínimo **5**; ao atingir o limite, a oferta passa a **inativa** e **some da home** pública. Vazio = sem limite (Firestore: `maxCoupons`, `couponsIssued`; geração com `runTransaction` quando há limite; regras permitem update anônimo só para incremento controlado — ver `firestore.rules` e `README_DEPLOY.md`)
+- **Limite opcional de cupons (QR):** número inteiro mínimo **5**; ao atingir o limite, a oferta passa a **inativa** e **some da home** pública. Vazio = sem limite. A home usa `subscribePublicOffers` para o contador **restam X de Y** acompanhar novos pedidos (Firestore: `maxCoupons`, `couponsIssued`; ver `firestore.rules` e `README_DEPLOY.md`)
 - QR Scanner para validar cupons (câmera ou código manual)
 
 ---
@@ -87,7 +88,7 @@ Um único projeto Firebase, três coleções:
 
 | Data       | Comando / verificação |
 |------------|------------------------|
-| 2026-03-31 | `npm run build` — concluído com sucesso (Vite + TypeScript). |
+| 2026-03-31 | `npm run build` concluído com sucesso (Vite + TypeScript). |
 
 Testes manuais recomendados após alterar regras: `firebase deploy --only firestore:rules` e gerar cupons até o limite em oferta com `maxCoupons` definido.
 
@@ -133,16 +134,16 @@ Testes manuais recomendados após alterar regras: `firebase deploy --only firest
 | `npm run dev` | Servidor de desenvolvimento |
 | `npm run build` | Build para produção   |
 | `npm run preview` | Preview do build      |
-| `npm run deploy:playas` | Build + deploy só no Firebase **`playas-e-ventajas`** (regras + hosting) — requer `firebase login` com conta do projeto |
+| `npm run deploy:playas` | Build + deploy só no Firebase **`playas-e-ventajas`** (regras + hosting); requer `firebase login` com conta do projeto |
 
 ---
 
 ## Documentação Adicional
 
-- [README_DEPLOY.md](README_DEPLOY.md) — Guia de deploy Firebase
-- [README_DOSSIE.md](README_DOSSIE.md) — Dossiê técnico detalhado
-- [RELATORIO_TECNICO_CLIENTE.md](RELATORIO_TECNICO_CLIENTE.md) — Status tecnico, testes e seguranca do MVP
-- [GUIA_SIMPLES_CLIENTE.md](GUIA_SIMPLES_CLIENTE.md) — Manual simples para cliente e equipe
+- [README_DEPLOY.md](README_DEPLOY.md): Guia de deploy Firebase
+- [README_DOSSIE.md](README_DOSSIE.md): Dossiê técnico detalhado
+- [RELATORIO_TECNICO_CLIENTE.md](RELATORIO_TECNICO_CLIENTE.md): Status tecnico, testes e seguranca do MVP
+- [GUIA_SIMPLES_CLIENTE.md](GUIA_SIMPLES_CLIENTE.md): Manual simples para cliente e equipe
 
 ---
 

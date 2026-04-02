@@ -84,9 +84,11 @@ npm run deploy:playas
 
 O app grava em cada oferta o campo **`ownerUid`** (UID do Firebase Auth do comerciante). A home pública só consulta ofertas com **`isActive == true`**.
 
+**Coleção `couponLocks`:** usada para garantir **no máximo um cupom por combinação (oferta + e-mail)** na geração do cupom, em conjunto com a gravação em `coupons`. As regras atuais estão sempre no arquivo **`firestore.rules`** da raiz. Ao publicar, use esse arquivo (não copie regras antigas de um guia desatualizado).
+
 **Migração:** ofertas criadas antes desta lógica podem não ter `ownerUid`. No Firestore (Console → dados), edite cada documento em `offers` e adicione `ownerUid` com o UID correto do usuário em Authentication, ou exclua/recadastre a oferta.
 
-**Firestore Rules** — Cole na aba **Regras** do Firestore e clique em **Publicar**:
+**Firestore Rules:** cole na aba **Regras** do Firestore e clique em **Publicar**:
 ```
 rules_version = '2';
 service cloud.firestore {
@@ -152,9 +154,9 @@ service cloud.firestore {
 
 **Observação (privacidade):** qualquer usuário autenticado ainda pode **ler** todos os cupons com essas regras (útil para o scanner no MVP). Para restringir leitura de e-mails apenas ao backend, use **Cloud Functions** e regras mais restritivas (`allow read: if false` em `coupons`).
 
-**Storage Rules** — Iguais ao arquivo **`storage.rules`** (upload atual em `offers/{uid}/...`; arquivos antigos em `offers/arquivo` permanecem só leitura).
+**Storage Rules:** iguais ao arquivo **`storage.rules`** (upload atual em `offers/{uid}/...`; arquivos antigos em `offers/arquivo` permanecem só leitura).
 
-### Passo 4b: Envio de e-mail do cupom (segunda fase — não incluído no escopo do MVP)
+### Passo 4b: Envio de e-mail do cupom (segunda fase, não incluído no escopo do MVP)
 
 O app grava um documento na coleção **`mail`** após gerar o cupom (fila). **A entrega na caixa de entrada não faz parte do MVP**; fica para quando o time ativar esta **fase 2** (ver também `GUIA_SIMPLES_CLIENTE.md` seção 2b e `RELATORIO_TECNICO_CLIENTE.md` seção 10).
 
@@ -216,13 +218,13 @@ Esse aviso do Chrome (**“Sua conexão não é particular”** + `net::ERR_CERT
    - `seudominio.com` (raiz)
    - `www.seudominio.com`
 3. Se `www` **não** estiver na lista, clique em **Adicionar domínio** e siga o assistente para `www.seudominio.com`.
-4. No provedor DNS (HostGator etc.), para o `www` use o registro que o Firebase mostrar (em geral **CNAME** `www` → `ghs.googlehosted.com` ou o valor indicado na tela — copie exatamente).
+4. No provedor DNS (HostGator etc.), para o `www` use o registro que o Firebase mostrar (em geral **CNAME** `www` → `ghs.googlehosted.com` ou o valor indicado na tela; copie exatamente).
 5. Aguarde a propagação DNS e o provisionamento do SSL (pode levar de minutos a algumas horas).
 6. Evite acessar o site pelo IP direto; use sempre o domínio após o DNS estar correto.
 
 Se o apex (`playasyventajas.com`) funciona com cadeado verde mas o `www` não, o passo 2–4 costuma resolver.
 
-**Sem redirecionamento (o que você configurou agora):** no Hosting você pode deixar **nem o apex nem o www** como “redirecionar para o outro”. Nesse modo, **`playasyventajas.com` e `www.playasyventajas.com` são dois hostnames independentes** — os dois precisam estar na lista de domínios personalizados como **Conectados**, cada um com DNS correto e SSL emitido. O site abre igual nos dois; não há redirecionamento automático entre eles (evita loops e simplifica testes de certificado).
+**Sem redirecionamento (o que você configurou agora):** no Hosting você pode deixar **nem o apex nem o www** como “redirecionar para o outro”. Nesse modo, **`playasyventajas.com` e `www.playasyventajas.com` são dois hostnames independentes**. Os dois precisam estar na lista de domínios personalizados como **Conectados**, cada um com DNS correto e SSL emitido. O site abre igual nos dois; não há redirecionamento automático entre eles (evita loops e simplifica testes de certificado).
 
 **Se o seu print mostra só `playasyventajas.com` com “Redirecionamento → www…” mas não aparece uma linha separada para `www.playasyventajas.com`:** o hostname `www` **ainda não está** tratado como domínio conectado ao Hosting com certificado próprio. Faça assim:
 

@@ -9,7 +9,8 @@ import {
   query,
   where,
   runTransaction,
-  deleteField
+  deleteField,
+  onSnapshot
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage, isFirebaseConfigured } from "./firebaseConfig";
@@ -17,6 +18,13 @@ import { Offer, Coupon, ConsumerStat } from "../types";
 
 // --- Mock Data for Demo (fallback) ---
 const MOCK_OWNER_UID = "mock-user-123";
+
+/** Demo: atualiza nome exibido em todas as ofertas do dono (sem Firebase). */
+export function updateMockOffersMerchantName(ownerUid: string, merchantName: string): void {
+  MOCK_OFFERS.forEach((o) => {
+    if (o.ownerUid === ownerUid) o.merchantName = merchantName;
+  });
+}
 
 let MOCK_OFFERS: Offer[] = [
   {
@@ -78,6 +86,31 @@ let MOCK_COUPONS: Coupon[] = [];
 /** Erro quando a oferta esgotou cupons ou está inativa (turista). */
 export const COUPON_SOLD_OUT = "COUPON_SOLD_OUT";
 
+/** Já existe cupom para este e-mail nesta oferta (1 por oferta). */
+export const COUPON_ALREADY_CLAIMED = "COUPON_ALREADY_CLAIMED";
+
+/** Campo de e-mail vazio ao gerar cupom (obrigatório preencher algo). */
+export const COUPON_INVALID_EMAIL = "COUPON_INVALID_EMAIL";
+
+/** Texto gravado no cupom: trim; formato livre (aceita qualquer texto não vazio). */
+export function normalizeCouponEmail(email: string): string {
+  return (email || "").trim();
+}
+
+/** ID estável do doc em `couponLocks` (1 cupom por oferta + e-mail). */
+function couponLockDocId(offerId: string, normalizedEmail: string): string {
+  const raw = `${offerId}\n${normalizedEmail}`;
+  const b = btoa(unescape(encodeURIComponent(raw)));
+  return b.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+/** Mock: chaves já “reservadas” para deduplicação. */
+const MOCK_COUPON_LOCK_KEYS = new Set<string>();
+
+function mockLockKey(offerId: string, normalizedEmail: string): string {
+  return `${offerId}|${normalizedEmail}`;
+}
+
 // --- Service Methods ---
 
 export const countCouponsForOffer = async (offerId: string): Promise<number> => {
@@ -107,6 +140,18 @@ export const getPublicOffers = async (): Promise<Offer[]> => {
     }
   });
   return [...MOCK_OFFERS].filter(o => o.isActive);
+};
+
+/** Home pública: atualização em tempo real quando cupons são gerados (Firestore). */
+export const subscribePublicOffers = (callback: (offers: Offer[]) => void): (() => void) => {
+  if (!isFirebaseConfigured()) {
+    getPublicOffers().then(callback);
+    return () => {};
+  }
+  const q = query(collection(db, "offers"), where("isActive", "==", true));
+  return onSnapshot(q, (snapshot) => {
+    callback(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Offer)));
+  });
 };
 
 /** Painel do comerciante: só ofertas cujo ownerUid corresponde ao usuário logado. */
@@ -171,6 +216,8 @@ function omitUndefined<T extends Record<string, unknown>>(obj: T): Record<string
 export const updateOffer = async (id: string, offer: OfferUpdateInput): Promise<void> => {
   const { removeCouponLimit, syncCouponsIssued, ...raw } = offer;
   let patch: Partial<Offer> = stripOfferInternalFields(raw);
+  /** Desconto/tipo de promo é fixo após criar a oferta; nunca persistir alterações via update. */
+  delete patch.discount;
   if (syncCouponsIssued != null) {
     patch = { ...patch, couponsIssued: syncCouponsIssued };
   }
@@ -268,7 +315,7 @@ async function queueCouponEmail(
     typeof window !== "undefined" && window.location?.origin
       ? window.location.origin
       : "https://playasyventajas.com";
-  const subject = `[Playas e Ventajas] Seu cupom — ${offer.title}`;
+  const subject = `[Playas e Ventajas] Seu cupom - ${offer.title}`;
   const html = `
     <p>Olá,</p>
     <p>Seu cupom foi gerado com sucesso.</p>
@@ -290,7 +337,37 @@ async function queueCouponEmail(
   }
 }
 
-/** Cupons gerados para ofertas deste comerciante: agrega por e-mail (base de clientes + top consumidores). */
+/** Agrega cupons por (e-mail + oferta) para base de clientes no painel. */
+function buildConsumerStatsFromCoupons(
+  coupons: Coupon[],
+  merchantUid: string
+): ConsumerStat[] {
+  const map = new Map<
+    string,
+    { couponCount: number; lastCouponAt: number; offerTitle: string; email: string; offerId: string }
+  >();
+  coupons.forEach((c) => {
+    if (c.merchantUid !== merchantUid) return;
+    const raw = (c.userEmail || "").trim().toLowerCase();
+    if (!raw) return;
+    const offerId = (c.offerId || "").trim();
+    const key = `${raw}::${offerId || "__no_offer__"}`;
+    const prev = map.get(key);
+    const title = (c.offerTitle || "").trim();
+    map.set(key, {
+      email: raw,
+      offerId,
+      offerTitle: (prev?.offerTitle || title) || "",
+      couponCount: (prev?.couponCount || 0) + 1,
+      lastCouponAt: Math.max(prev?.lastCouponAt || 0, c.createdAt || 0)
+    });
+  });
+  return Array.from(map.values())
+    .sort((a, b) => b.couponCount - a.couponCount || b.lastCouponAt - a.lastCouponAt)
+    .slice(0, 50);
+}
+
+/** Cupons gerados para ofertas deste comerciante: agrega por e-mail e oferta (base de clientes + top consumidores). */
 export const getMerchantConsumerStats = async (
   merchantUid: string
 ): Promise<ConsumerStat[]> => {
@@ -302,49 +379,31 @@ export const getMerchantConsumerStats = async (
       where("merchantUid", "==", merchantUid)
     );
     const querySnapshot = await getDocs(q);
-    const map = new Map<string, { couponCount: number; lastCouponAt: number }>();
-    querySnapshot.docs.forEach((d) => {
-      const c = d.data() as Coupon;
-      const raw = (c.userEmail || "").trim().toLowerCase();
-      if (!raw) return;
-      const prev = map.get(raw) || { couponCount: 0, lastCouponAt: 0 };
-      map.set(raw, {
-        couponCount: prev.couponCount + 1,
-        lastCouponAt: Math.max(prev.lastCouponAt, c.createdAt || 0)
-      });
+    const list: Coupon[] = querySnapshot.docs.map((d) => {
+      const data = d.data() as Coupon;
+      return { ...data, id: d.id };
     });
-    return Array.from(map.entries())
-      .map(([email, v]) => ({ email, ...v }))
-      .sort((a, b) => b.couponCount - a.couponCount || b.lastCouponAt - a.lastCouponAt)
-      .slice(0, 50);
+    return buildConsumerStatsFromCoupons(list, merchantUid);
   }
 
-  const map = new Map<string, { couponCount: number; lastCouponAt: number }>();
-  MOCK_COUPONS.filter((c) => c.merchantUid === merchantUid).forEach((c) => {
-    const raw = (c.userEmail || "").trim().toLowerCase();
-    if (!raw) return;
-    const prev = map.get(raw) || { couponCount: 0, lastCouponAt: 0 };
-    map.set(raw, {
-      couponCount: prev.couponCount + 1,
-      lastCouponAt: Math.max(prev.lastCouponAt, c.createdAt || 0)
-    });
-  });
-  return Array.from(map.entries())
-    .map(([email, v]) => ({ email, ...v }))
-    .sort((a, b) => b.couponCount - a.couponCount)
-    .slice(0, 50);
+  return buildConsumerStatsFromCoupons(MOCK_COUPONS, merchantUid);
 };
 
 export const generateCoupon = async (
   offer: Offer,
   email: string
 ): Promise<{ coupon: Coupon; mailQueued: boolean }> => {
+  const norm = normalizeCouponEmail(email);
+  if (!norm) {
+    throw new Error(COUPON_INVALID_EMAIL);
+  }
+
   const merchantUid = offer.ownerUid?.trim() || "";
   const newCouponData: Omit<Coupon, "id"> = {
     offerId: offer.id,
     offerTitle: offer.title,
     discount: offer.discount,
-    userEmail: email,
+    userEmail: norm,
     createdAt: Date.now(),
     status: "VALID",
     merchantUid
@@ -355,9 +414,16 @@ export const generateCoupon = async (
     typeof offer.maxCoupons === "number" &&
     offer.maxCoupons >= 5;
 
+  const lockId = couponLockDocId(offer.id, norm);
+  const lockRef = doc(db, "couponLocks", lockId);
+
   if (isFirebaseConfigured()) {
     if (hasLimit) {
       const coupon = await runTransaction(db, async (transaction) => {
+        const lockSnap = await transaction.get(lockRef);
+        if (lockSnap.exists()) {
+          throw new Error(COUPON_ALREADY_CLAIMED);
+        }
         const offerRef = doc(db, "offers", offer.id);
         const offerSnap = await transaction.get(offerRef);
         if (!offerSnap.exists()) {
@@ -375,6 +441,11 @@ export const generateCoupon = async (
         const newIssued = issued + 1;
         const stillActive = newIssued < mc;
         const couponRef = doc(collection(db, "coupons"));
+        transaction.set(lockRef, {
+          offerId: offer.id,
+          email: norm,
+          createdAt: Date.now()
+        });
         transaction.set(couponRef, newCouponData);
         transaction.update(offerRef, {
           couponsIssued: newIssued,
@@ -382,13 +453,33 @@ export const generateCoupon = async (
         });
         return { id: couponRef.id, ...newCouponData };
       });
-      const mailQueued = await queueCouponEmail(email, offer, coupon.id);
+      const mailQueued = await queueCouponEmail(norm, offer, coupon.id);
       return { coupon, mailQueued };
     }
-    const docRef = await addDoc(collection(db, "coupons"), newCouponData);
-    const coupon = { id: docRef.id, ...newCouponData };
-    const mailQueued = await queueCouponEmail(email, offer, coupon.id);
+    const coupon = await runTransaction(db, async (transaction) => {
+      const lockSnap = await transaction.get(lockRef);
+      if (lockSnap.exists()) {
+        throw new Error(COUPON_ALREADY_CLAIMED);
+      }
+      const couponRef = doc(collection(db, "coupons"));
+      transaction.set(lockRef, {
+        offerId: offer.id,
+        email: norm,
+        createdAt: Date.now()
+      });
+      transaction.set(couponRef, newCouponData);
+      return { id: couponRef.id, ...newCouponData };
+    });
+    const mailQueued = await queueCouponEmail(norm, offer, coupon.id);
     return { coupon, mailQueued };
+  }
+
+  const mk = mockLockKey(offer.id, norm);
+  if (MOCK_COUPON_LOCK_KEYS.has(mk)) {
+    throw new Error(COUPON_ALREADY_CLAIMED);
+  }
+  if (MOCK_COUPONS.some((c) => c.offerId === offer.id && normalizeCouponEmail(c.userEmail) === norm)) {
+    throw new Error(COUPON_ALREADY_CLAIMED);
   }
 
   if (hasLimit) {
@@ -408,6 +499,7 @@ export const generateCoupon = async (
       id: `CPN-${Math.random().toString(36).substr(2, 6).toUpperCase()}`
     };
     MOCK_COUPONS.push(coupon);
+    MOCK_COUPON_LOCK_KEYS.add(mk);
     return { coupon, mailQueued: false };
   }
 
@@ -416,6 +508,7 @@ export const generateCoupon = async (
     id: `CPN-${Math.random().toString(36).substr(2, 6).toUpperCase()}`
   };
   MOCK_COUPONS.push(coupon);
+  MOCK_COUPON_LOCK_KEYS.add(mk);
   return { coupon, mailQueued: false };
 };
 

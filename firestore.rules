@@ -31,6 +31,17 @@ service cloud.firestore {
       allow delete: if request.auth != null
         && resource.data.ownerUid == request.auth.uid;
     }
+    // 1 cupom por combinação oferta + e-mail (dedupe atômico com o cupom).
+    // get precisa ser permitido: a transação do cliente faz get(lock) antes do create.
+    // list fica false para não vazar/varrer a coleção.
+    match /couponLocks/{lockId} {
+      allow get: if true;
+      allow list: if false;
+      allow create: if request.resource.data.keys().hasAll(['offerId', 'email', 'createdAt'])
+        && request.resource.data.offerId is string
+        && request.resource.data.email is string;
+      allow update, delete: if false;
+    }
     match /coupons/{couponId} {
       allow create: if request.resource.data.keys().hasAll(
           ['offerId','offerTitle','discount','userEmail','createdAt','status','merchantUid'])

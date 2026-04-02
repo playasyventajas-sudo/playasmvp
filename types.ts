@@ -39,9 +39,11 @@ export interface Coupon {
   merchantUid?: string;
 }
 
-/** Agregado por e-mail para o painel do comerciante */
+/** Agregado por e-mail + oferta para o painel do comerciante */
 export interface ConsumerStat {
   email: string;
+  offerId: string;
+  offerTitle: string;
   couponCount: number;
   lastCouponAt: number;
 }

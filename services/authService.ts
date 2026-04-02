@@ -1,13 +1,27 @@
-import { 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
-  signOut, 
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
   sendPasswordResetEmail,
   onAuthStateChanged,
-  User
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  updatePassword
 } from "firebase/auth";
-import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import {
+  doc,
+  setDoc,
+  getDoc,
+  updateDoc,
+  serverTimestamp,
+  collection,
+  query,
+  where,
+  getDocs,
+  writeBatch
+} from "firebase/firestore";
 import { auth, db, isFirebaseConfigured } from "./firebaseConfig";
+import { updateMockOffersMerchantName } from "./dataService";
 import { CompanyUser } from "../types";
 
 // Mock user for demo mode
@@ -96,6 +110,55 @@ export const logoutCompany = async () => {
     return;
   }
   await signOut(auth);
+};
+
+/** Atualiza nome do estabelecimento em `companies` e em todas as ofertas do mesmo dono. */
+export const updateCompanyDisplayName = async (
+  uid: string,
+  companyName: string
+): Promise<void> => {
+  const trimmed = companyName.trim();
+  if (!trimmed) throw new Error("empty name");
+
+  if (!isFirebaseConfigured()) {
+    updateMockOffersMerchantName(uid, trimmed);
+    return;
+  }
+
+  await updateDoc(doc(db, "companies", uid), {
+    companyName: trimmed,
+    updatedAt: serverTimestamp()
+  });
+
+  const q = query(collection(db, "offers"), where("ownerUid", "==", uid));
+  const snap = await getDocs(q);
+  let batch = writeBatch(db);
+  let n = 0;
+  for (const d of snap.docs) {
+    batch.update(d.ref, { merchantName: trimmed });
+    n++;
+    if (n >= 500) {
+      await batch.commit();
+      batch = writeBatch(db);
+      n = 0;
+    }
+  }
+  if (n > 0) await batch.commit();
+};
+
+/** Troca senha do usuário logado (e-mail/senha). Esqueci minha senha usa `resetPassword`. */
+export const changeMerchantPassword = async (
+  currentPassword: string,
+  newPassword: string
+): Promise<void> => {
+  if (!isFirebaseConfigured()) {
+    throw new Error("DEMO_NO_PASSWORD_CHANGE");
+  }
+  const u = auth.currentUser;
+  if (!u?.email) throw new Error("no user");
+  const cred = EmailAuthProvider.credential(u.email, currentPassword);
+  await reauthenticateWithCredential(u, cred);
+  await updatePassword(u, newPassword);
 };
 
 export const resetPassword = async (email: string) => {

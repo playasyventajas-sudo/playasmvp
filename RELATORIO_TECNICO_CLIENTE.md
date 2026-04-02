@@ -22,7 +22,7 @@ Este documento registra o status real do MVP apos testes tecnicos de:
 ### Escopo do MVP (explicito)
 
 - **Incluido no MVP:** geracao de cupom, persistencia em `coupons`, QR na tela, validacao no estabelecimento, painel da empresa, fila `mail` **preparada no codigo** (documento criado quando possivel).
-- **Nao incluido no MVP (segunda fase):** **entrega do e-mail do cupom na caixa de entrada** do turista. Motivo: exige **infraestrutura** no Google Cloud (extensao **Trigger Email**, **SMTP**, normalmente projeto **Blaze**), configuracao no Console e testes — fora do criterio de lancamento minimo viavel. Ver **secao 10** deste relatorio.
+- **Nao incluido no MVP (segunda fase):** **entrega do e-mail do cupom na caixa de entrada** do turista. Motivo: exige **infraestrutura** no Google Cloud (extensao **Trigger Email**, **SMTP**, normalmente projeto **Blaze**), configuracao no Console e testes, fora do criterio de lancamento minimo viavel. Ver **secao 10** deste relatorio.
 
 ## 3) Evidencias tecnicas dos testes
 
@@ -100,11 +100,11 @@ Observacao: as ofertas foram intencionalmente criadas para validacao do MVP.
 ### Base de clientes / top consumidores
 - Agregacao no cliente a partir de `coupons` com `where('merchantUid', '==', uid)`: agrupa por e-mail, conta cupons, ordena e exibe no painel (ate 50 linhas). Destaque visual para os 3 primeiros.
 
-### Limite opcional de cupons por oferta (QR) — 2026-04-01
+### Limite opcional de cupons por oferta (QR), 2026-04-01
 - **Painel:** campo opcional **maximo de cupons (QR)**; se preenchido, valor inteiro **minimo 5**; vazio = sem limite.
 - **Modelo de dados:** em `offers`, campos opcionais `maxCoupons` e `couponsIssued` (contador). Quando `maxCoupons` esta definido, a geracao de cupom usa **transacao** Firestore: incrementa `couponsIssued`, e se atingir o limite define `isActive: false` (a oferta **some da home** publica, que filtra `isActive == true`).
 - **Turista:** se o limite for atingido entre leituras, o cliente recebe erro `COUPON_SOLD_OUT` e mensagem no modal.
-- **Regras Firestore:** alem do CRUD pelo dono, existe `update` **sem login** permitido apenas para o incremento atomico de `couponsIssued` (e desativacao quando esgota) em ofertas que ja possuem `maxCoupons` — ver `firestore.rules` e `README_DEPLOY.md`. **Deploy:** publicar regras atualizadas apos alteracao.
+- **Regras Firestore:** alem do CRUD pelo dono, existe `update` **sem login** permitido apenas para o incremento atomico de `couponsIssued` (e desativacao quando esgota) em ofertas que ja possuem `maxCoupons`; ver `firestore.rules` e `README_DEPLOY.md`. **Deploy:** publicar regras atualizadas apos alteracao.
 
 ### Limites de escala
 - **Nao ha limite de empresas imposto pelo codigo.** Limites praticos: cotas e precificacao do Firebase (Auth, Firestore, Storage, Hosting, extensao de e-mail). Monitorar uso em producao.
@@ -141,12 +141,12 @@ Observacao: as ofertas foram intencionalmente criadas para validacao do MVP.
 
 ### "O e-mail do turista esta sendo enviado por e-mail?"
 - **No MVP:** o turista usa o **QR na tela**; o e-mail fica em `coupons.userEmail` para controle e estatisticas.
-- **Copia na caixa de entrada:** **nao** faz parte do MVP. O app pode gravar na fila **`mail`**; o **envio** exige **fase 2** (Trigger Email + SMTP + Blaze) — ver **secao 10**.
+- **Copia na caixa de entrada:** **nao** faz parte do MVP. O app pode gravar na fila **`mail`**; o **envio** exige **fase 2** (Trigger Email + SMTP + Blaze). Ver **secao 10**.
 - **Esqueci a senha** (empresa) e outro fluxo: e-mail nativo do **Firebase Auth**, independente da colecao `mail`.
 
 ## 8) Recomendacoes de proxima fase (prioridade)
 
-1. **Fase 2 — entrega de e-mail do cupom:** instalar extensao **Trigger Email**, configurar **SMTP**, habilitar **Blaze** se necessario; testar ponta a ponta (ver secao 10 e `README_DEPLOY.md` Passo 4b). Opcional: Cloud Functions para logica extra.
+1. **Fase 2, entrega de e-mail do cupom:** instalar extensao **Trigger Email**, configurar **SMTP**, habilitar **Blaze** se necessario; testar ponta a ponta (ver secao 10 e `README_DEPLOY.md` Passo 4b). Opcional: Cloud Functions para logica extra.
 2. Adicionar App Check + rate limit para geracao de cupom.
 3. Restringir leitura de `coupons` para backend/claims apropriadas.
 4. Criar painel de auditoria (uso de cupom por oferta e por periodo).
@@ -160,15 +160,15 @@ Observacao: as ofertas foram intencionalmente criadas para validacao do MVP.
 - [x] Upload de imagem no Storage
 - [x] Geracao e validacao basica de cupom
 - [x] Cupom + QR + dados em `coupons` (MVP entregue)
-- [x] Limite opcional de cupons por oferta (painel, Firestore, regras — ver secao 4 e 5)
-- [ ] **Fora do MVP:** entrega automatica do cupom **na caixa de entrada** (fase 2; fila `mail` + Trigger Email + SMTP — ver secao 10)
+- [x] Limite opcional de cupons por oferta (painel, Firestore, regras; ver secao 4 e 5)
+- [ ] **Fora do MVP:** entrega automatica do cupom **na caixa de entrada** (fase 2; fila `mail` + Trigger Email + SMTP; ver secao 10)
 
-## 10) Fase 2 (pos-MVP): entrega do e-mail do cupom — por que nao entrou no MVP, custo e passos
+## 10) Fase 2 (pos-MVP): entrega do e-mail do cupom (por que nao entrou no MVP, custo e passos)
 
 ### Por que nao esta no MVP
 
 - O frontend **nao envia** e-mail diretamente; ele grava dados e pode enfileirar em **`mail`**.
-- A **entrega** exige processo em **background** (extensao **Trigger Email** lendo `mail` e chamando **SMTP**). Isso implica **Cloud Functions** (ou equivalente da extensao), projeto em **Blaze** na maioria dos casos, e **credenciais SMTP** — trabalho de **infra + Console**, nao so de publicar o site.
+- A **entrega** exige processo em **background** (extensao **Trigger Email** lendo `mail` e chamando **SMTP**). Isso implica **Cloud Functions** (ou equivalente da extensao), projeto em **Blaze** na maioria dos casos, e **credenciais SMTP**: trabalho de **infra + Console**, nao so de publicar o site.
 
 ### Estimativa de custo (ordem de grandeza)
 
@@ -176,7 +176,7 @@ Observacao: as ofertas foram intencionalmente criadas para validacao do MVP.
 |------|------------|
 | Firebase **Blaze** | Cobranca por uso (Cloud Functions invocadas pela extensao, etc.). Em trafego **baixo** de MVP, costuma ser **centavos a poucos USD/mes**; depende de volume e regiao. |
 | **SMTP** | Muitos provedores tem **free tier** ou custo baixo para centenas/milhares de e-mails/mes. |
-| Tempo de equipe | Configurar extensao, SMTP, testes e monitorar spam/dominio — motivo para separar da entrega do MVP. |
+| Tempo de equipe | Configurar extensao, SMTP, testes e monitorar spam/dominio; motivo para separar da entrega do MVP. |
 
 Valores exatos dependem do provedor SMTP e do uso; recomenda-se revisar a tabela de precos do Firebase/GCP no momento da ativacao.
 

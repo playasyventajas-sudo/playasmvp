@@ -1,14 +1,32 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { FirebaseError } from 'firebase/app';
 import { Offer, Coupon, UserRole, CompanyUser, Category, ConsumerStat } from './types';
-import { getPublicOffers, getMerchantOffers, getMerchantConsumerStats, createOffer, updateOffer, deleteOffer, generateCoupon, validateCoupon, uploadImage, countCouponsForOffer, COUPON_SOLD_OUT } from './services/dataService';
+import { getPublicOffers, subscribePublicOffers, getMerchantOffers, getMerchantConsumerStats, createOffer, updateOffer, deleteOffer, generateCoupon, validateCoupon, uploadImage, countCouponsForOffer, COUPON_SOLD_OUT, COUPON_ALREADY_CLAIMED, COUPON_INVALID_EMAIL } from './services/dataService';
 import type { OfferUpdateInput } from './services/dataService';
 import { safeImageUrl } from './utils/safeUrl';
-import { subscribeToAuthChanges, logoutCompany } from './services/authService';
+import { subscribeToAuthChanges, logoutCompany, updateCompanyDisplayName, changeMerchantPassword } from './services/authService';
+import { isFirebaseConfigured } from './services/firebaseConfig';
 import { QRCodeCanvas } from 'qrcode.react';
 import { IconPalm, IconQrCode, IconCamera, IconTrash, IconInfo, IconFileText, IconCheck, IconX } from './components/Icons';
 import { translations, Language } from './src/translations';
 import { LoginPanel } from './components/Auth';
 import jsQR from 'jsqr';
+
+/** Quantidade de linhas da base de clientes antes do “Ver mais”. */
+const CUSTOMER_LIST_PREVIEW = 10;
+
+function localDateYmd(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/** Pausada pelo comerciante ou vigência já encerrada (data local). */
+function isOfferArchived(offer: Offer): boolean {
+  if (!offer.isActive) return true;
+  const until = (offer.validUntil || '').trim();
+  if (!until) return false;
+  return until < localDateYmd();
+}
 
 // --- Sub-components defined here for single-file XML requirement simplicity, normally separated ---
 
@@ -70,6 +88,12 @@ const Navbar = ({ setView, currentView, lang, setLang }: { setView: (v: string) 
 // 2. Offer Card
 const OfferCard: React.FC<{ offer: Offer, onGetCoupon: (o: Offer) => void, lang: Language }> = ({ offer, onGetCoupon, lang }) => {
   const t = translations[lang].offerCard;
+  const max = offer.maxCoupons;
+  const hasLimit = typeof max === "number" && max >= 5;
+  const issued = offer.couponsIssued ?? 0;
+  const remaining = hasLimit ? Math.max(0, max - issued) : null;
+  const pctRemaining = hasLimit && max > 0 ? Math.round((remaining! / max) * 100) : 100;
+
   return (
   <div className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 border border-sea-50 flex flex-col h-full">
     <div className="h-48 overflow-hidden relative flex-shrink-0">
@@ -86,6 +110,29 @@ const OfferCard: React.FC<{ offer: Offer, onGetCoupon: (o: Offer) => void, lang:
           <span className="bg-sand-100 text-sand-700 text-xs font-bold px-2 py-1 rounded-md uppercase tracking-wide">
             {offer.discount}
           </span>
+        </div>
+      )}
+
+      {hasLimit && remaining !== null && (
+        <div className="mb-3 rounded-lg border border-sea-100 bg-sea-50/80 px-3 py-2">
+          <div className="flex items-center justify-between gap-2 mb-1.5">
+            <span className="text-xs font-semibold text-sea-900">
+              {t.couponsRemaining
+                .replace("{remaining}", String(remaining))
+                .replace("{total}", String(max))}
+            </span>
+            {remaining > 0 && remaining <= 2 && (
+              <span className="text-[10px] font-bold uppercase tracking-wide text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">
+                {t.couponsFewLeft}
+              </span>
+            )}
+          </div>
+          <div className="h-2 bg-white/80 rounded-full overflow-hidden border border-sea-100">
+            <div
+              className="h-full bg-gradient-to-r from-sea-500 to-sea-400 rounded-full transition-all duration-500"
+              style={{ width: `${pctRemaining}%` }}
+            />
+          </div>
         </div>
       )}
 
@@ -107,7 +154,17 @@ const OfferCard: React.FC<{ offer: Offer, onGetCoupon: (o: Offer) => void, lang:
 };
 
 // 3. Modal for Email & QR
-const CouponModal = ({ offer, onClose, lang }: { offer: Offer | null, onClose: () => void, lang: Language }) => {
+const CouponModal = ({
+  offer,
+  onClose,
+  lang,
+  onCouponGenerated
+}: {
+  offer: Offer | null;
+  onClose: () => void;
+  lang: Language;
+  onCouponGenerated?: () => void;
+}) => {
   const [email, setEmail] = useState('');
   const [coupon, setCoupon] = useState<Coupon | null>(null);
   const [mailQueued, setMailQueued] = useState<boolean | null>(null);
@@ -123,10 +180,19 @@ const CouponModal = ({ offer, onClose, lang }: { offer: Offer | null, onClose: (
       const result = await generateCoupon(offer, email);
       setCoupon(result.coupon);
       setMailQueued(result.mailQueued);
+      onCouponGenerated?.();
     } catch (error) {
       console.error(error);
-      if (error instanceof Error && error.message === COUPON_SOLD_OUT) {
-        alert(t.soldOut);
+      if (error instanceof Error) {
+        const m = error.message;
+        if (m === COUPON_SOLD_OUT) alert(t.soldOut);
+        else if (m === COUPON_ALREADY_CLAIMED) alert(t.alreadyClaimed);
+        else if (m === COUPON_INVALID_EMAIL) alert(t.invalidEmail);
+        else if (error instanceof FirebaseError) {
+          alert(`${t.error}\n\n${error.code}: ${error.message}`);
+        } else {
+          alert(`${t.error}\n\n${m}`);
+        }
       } else {
         alert(t.error);
       }
@@ -150,9 +216,11 @@ const CouponModal = ({ offer, onClose, lang }: { offer: Offer | null, onClose: (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t.emailLabel}</label>
                 <input 
-                  type="email" 
-                  required 
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-sea-500 focus:border-transparent outline-none transition-all"
+                  type="text"
+                  inputMode="email"
+                  autoComplete="email"
+                  required
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-sea-500 focus:border-transparent outline-none transition-all"
                   placeholder={t.placeholder}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -180,9 +248,9 @@ const CouponModal = ({ offer, onClose, lang }: { offer: Offer | null, onClose: (
             <p className="text-sm text-gray-500 mb-2">{t.codeLabel} <span className="font-mono font-bold text-gray-800">{coupon.id}</span></p>
             <p className="text-xs text-gray-400 mb-4">{t.instruction}</p>
             <p className="text-xs text-sea-600 bg-sea-50 rounded-lg px-3 py-2 mb-3 font-medium">{t.gamificationMsg}</p>
-            {mailQueued !== null && (
-              <p className={`text-xs rounded-lg px-3 py-2 mb-6 ${mailQueued ? 'bg-blue-50 text-blue-800' : 'bg-amber-50 text-amber-900'}`}>
-                {mailQueued ? t.emailQueuedHint : t.emailNotQueuedHint}
+            {mailQueued === false && (
+              <p className="text-xs rounded-lg px-3 py-2 mb-6 bg-amber-50 text-amber-900">
+                {t.emailNotQueuedHint}
               </p>
             )}
             <button onClick={onClose} className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 py-3 rounded-lg font-semibold transition-colors">
@@ -196,15 +264,33 @@ const CouponModal = ({ offer, onClose, lang }: { offer: Offer | null, onClose: (
 };
 
 // 4. Admin Panel
-const AdminPanel = ({ lang, user }: { lang: Language, user: CompanyUser }) => {
+const AdminPanel = ({
+  lang,
+  user,
+  onUserUpdate
+}: {
+  lang: Language;
+  user: CompanyUser;
+  onUserUpdate: (u: CompanyUser) => void;
+}) => {
   const [offers, setOffers] = useState<Offer[]>([]);
   const [consumers, setConsumers] = useState<ConsumerStat[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [newOffer, setNewOffer] = useState<Partial<Offer>>({
-    title: '', description: '', discount: '', merchantName: user.companyName, validFrom: '', validUntil: '', imageUrl: '', isActive: true, categories: []
+    title: '', description: '', discount: '', validFrom: '', validUntil: '', imageUrl: '', isActive: true, categories: []
   });
+  const [profileName, setProfileName] = useState(user.companyName);
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileMsg, setProfileMsg] = useState<'ok' | 'err' | null>(null);
+  const [pwdCurrent, setPwdCurrent] = useState('');
+  const [pwdNew, setPwdNew] = useState('');
+  const [pwdConfirm, setPwdConfirm] = useState('');
+  const [pwdSaving, setPwdSaving] = useState(false);
+  const [pwdMsg, setPwdMsg] = useState<string | null>(null);
+  const [offerTab, setOfferTab] = useState<'active' | 'archived'>('active');
+  const [customersExpanded, setCustomersExpanded] = useState(false);
   const t = translations[lang].admin;
   const tCats = translations[lang].categories;
 
@@ -217,7 +303,18 @@ const AdminPanel = ({ lang, user }: { lang: Language, user: CompanyUser }) => {
     setConsumers(stats);
   };
 
+  /** Nome da promoção na lista de clientes: título atual da oferta (offers), não só a cópia gravada no cupom na hora da geração. */
+  const displayOfferTitleForStat = (row: ConsumerStat) => {
+    const live = offers.find((o) => o.id === row.offerId);
+    if (live?.title?.trim()) return live.title.trim();
+    return row.offerTitle?.trim() || row.offerId || '-';
+  };
+
   useEffect(() => { refresh(); }, []);
+
+  useEffect(() => {
+    setProfileName(user.companyName);
+  }, [user.companyName]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -229,6 +326,17 @@ const AdminPanel = ({ lang, user }: { lang: Language, user: CompanyUser }) => {
       return;
     }
 
+    const vf = (newOffer.validFrom || "").trim();
+    const vu = (newOffer.validUntil || "").trim();
+    if (!vf || !vu) {
+      alert(t.dateBothRequired);
+      return;
+    }
+    if (vf > vu) {
+      alert(t.dateOrderInvalid);
+      return;
+    }
+
     const offerData: Partial<Offer> = {
       ...newOffer,
       imageUrl: newOffer.imageUrl || `https://picsum.photos/400/300?random=${Date.now()}`,
@@ -237,6 +345,12 @@ const AdminPanel = ({ lang, user }: { lang: Language, user: CompanyUser }) => {
     if (mc == null) {
       delete offerData.maxCoupons;
       delete offerData.couponsIssued;
+    }
+
+    offerData.merchantName = user.companyName;
+    if (editingId) {
+      const prev = offers.find((o) => o.id === editingId);
+      if (prev) offerData.discount = prev.discount;
     }
 
     try {
@@ -258,8 +372,17 @@ const AdminPanel = ({ lang, user }: { lang: Language, user: CompanyUser }) => {
         } else {
           const prevIssued = prev?.couponsIssued ?? 0;
           const finalPatch = { ...offerData } as OfferUpdateInput;
-          if (hasLimitNow && mc != null && prevIssued >= mc) {
-            finalPatch.isActive = false;
+          if (hasLimitNow && mc != null) {
+            if (prevIssued >= mc) {
+              finalPatch.isActive = false;
+            } else {
+              const wasSoldOutAtLimit =
+                prev != null &&
+                prev.maxCoupons != null &&
+                prev.maxCoupons >= 5 &&
+                prevIssued >= prev.maxCoupons;
+              finalPatch.isActive = wasSoldOutAtLimit ? true : (newOffer.isActive ?? true);
+            }
           }
           await updateOffer(editingId, finalPatch);
         }
@@ -268,7 +391,7 @@ const AdminPanel = ({ lang, user }: { lang: Language, user: CompanyUser }) => {
       }
       setIsAdding(false);
       setEditingId(null);
-      setNewOffer({ title: '', description: '', discount: '', merchantName: user.companyName, validFrom: '', validUntil: '', imageUrl: '', isActive: true, categories: [] });
+      setNewOffer({ title: '', description: '', discount: '', validFrom: '', validUntil: '', imageUrl: '', isActive: true, categories: [] });
       refresh();
     } catch (err) {
       console.error(err);
@@ -335,42 +458,225 @@ const AdminPanel = ({ lang, user }: { lang: Language, user: CompanyUser }) => {
   const cancelEdit = () => {
     setIsAdding(false);
     setEditingId(null);
-    setNewOffer({ title: '', description: '', discount: '', merchantName: user.companyName, validFrom: '', validUntil: '', imageUrl: '', isActive: true, categories: [] });
+    setNewOffer({ title: '', description: '', discount: '', validFrom: '', validUntil: '', imageUrl: '', isActive: true, categories: [] });
   };
 
   const categoriesList: Category[] = ['bar', 'restaurant', 'experience', 'lodging', 'other'];
 
+  const activeOffersList = offers.filter((o) => !isOfferArchived(o));
+  const archivedOffersList = offers.filter((o) => isOfferArchived(o));
+  const displayedOffers = offerTab === 'active' ? activeOffersList : archivedOffersList;
+
+  const visibleConsumers = customersExpanded
+    ? consumers
+    : consumers.slice(0, CUSTOMER_LIST_PREVIEW);
+  const customerExtraCount = Math.max(0, consumers.length - CUSTOMER_LIST_PREVIEW);
+
+  const handleSaveProfile = async () => {
+    const trimmed = profileName.trim();
+    if (!trimmed || trimmed === user.companyName) return;
+    setProfileSaving(true);
+    setProfileMsg(null);
+    try {
+      await updateCompanyDisplayName(user.uid, trimmed);
+      onUserUpdate({ ...user, companyName: trimmed });
+      await refresh();
+      setProfileMsg('ok');
+    } catch (e) {
+      console.error(e);
+      setProfileMsg('err');
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
+  const handlePasswordChange = async () => {
+    setPwdMsg(null);
+    if (pwdNew.length < 6) {
+      setPwdMsg(t.passwordTooShort);
+      return;
+    }
+    if (pwdNew !== pwdConfirm) {
+      setPwdMsg(t.passwordMismatch);
+      return;
+    }
+    setPwdSaving(true);
+    try {
+      await changeMerchantPassword(pwdCurrent, pwdNew);
+      setPwdMsg(t.passwordChanged);
+      setPwdCurrent('');
+      setPwdNew('');
+      setPwdConfirm('');
+    } catch (e) {
+      console.error(e);
+      setPwdMsg(t.passwordError);
+    } finally {
+      setPwdSaving(false);
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto p-6">
-      <div className="flex justify-between items-center mb-8">
-        <h2 className="text-2xl font-bold text-gray-800">{t.title}</h2>
-        <button 
-          onClick={() => isAdding ? cancelEdit() : setIsAdding(true)}
-          className="bg-sea-600 text-white px-4 py-2 rounded-lg shadow hover:bg-sea-700 transition-colors"
-        >
-          {isAdding ? t.cancel : t.addOffer}
-        </button>
+      <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="text-2xl font-bold text-gray-800 min-w-0">{t.title}</h2>
+        <div className="flex flex-row flex-wrap items-center gap-2 sm:justify-end shrink-0">
+          {isAdding && (
+            <button
+              type="button"
+              onClick={cancelEdit}
+              className="bg-sea-600 text-white px-4 py-2 rounded-lg shadow hover:bg-sea-700 transition-colors whitespace-nowrap"
+            >
+              {t.cancel}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setIsAdding(true)}
+            disabled={isAdding}
+            className="bg-sea-600 text-white px-4 py-2 rounded-lg shadow transition-colors whitespace-nowrap disabled:pointer-events-none disabled:opacity-40 hover:bg-sea-700 enabled:hover:bg-sea-700"
+          >
+            {t.addOffer}
+          </button>
+        </div>
+      </div>
+
+      <div className="mb-8 bg-white p-6 rounded-xl shadow-md border border-gray-100">
+        <h3 className="text-lg font-semibold text-gray-800 mb-1">{t.profileHeading}</h3>
+        <p className="text-sm text-gray-600 mb-4">{t.profileDesc}</p>
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
+          <div className="flex-1 min-w-0">
+            <label className="text-xs text-gray-500 mb-1 block">{t.profilePlaceholder}</label>
+            <input
+              type="text"
+              className="w-full border p-2 rounded"
+              value={profileName}
+              onChange={(e) => setProfileName(e.target.value)}
+            />
+          </div>
+          <button
+            type="button"
+            disabled={profileSaving || !profileName.trim() || profileName.trim() === user.companyName}
+            onClick={handleSaveProfile}
+            className="px-4 py-2 rounded-lg bg-sea-600 text-white font-medium hover:bg-sea-700 disabled:opacity-40 whitespace-nowrap shrink-0"
+          >
+            {profileSaving ? t.profileSaving : t.saveProfile}
+          </button>
+        </div>
+        {profileMsg === 'ok' && <p className="text-sm text-green-700 mt-2">{t.profileSaved}</p>}
+        {profileMsg === 'err' && <p className="text-sm text-red-600 mt-2">{t.profileError}</p>}
+
+        <p className="text-xs text-gray-500 mt-6 border-t border-gray-100 pt-4">{t.forgotPasswordNote}</p>
+
+        {isFirebaseConfigured() ? (
+          <div className="mt-4">
+            <h4 className="text-sm font-semibold text-gray-800 mb-3">{t.passwordHeading}</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl">
+              <input
+                type="password"
+                autoComplete="current-password"
+                className="border p-2 rounded sm:col-span-2"
+                placeholder={t.passwordCurrent}
+                value={pwdCurrent}
+                onChange={(e) => setPwdCurrent(e.target.value)}
+              />
+              <input
+                type="password"
+                autoComplete="new-password"
+                className="border p-2 rounded"
+                placeholder={t.passwordNew}
+                value={pwdNew}
+                onChange={(e) => setPwdNew(e.target.value)}
+              />
+              <input
+                type="password"
+                autoComplete="new-password"
+                className="border p-2 rounded"
+                placeholder={t.passwordConfirm}
+                value={pwdConfirm}
+                onChange={(e) => setPwdConfirm(e.target.value)}
+              />
+            </div>
+            <button
+              type="button"
+              disabled={pwdSaving || !pwdCurrent || !pwdNew || !pwdConfirm}
+              onClick={handlePasswordChange}
+              className="mt-3 px-4 py-2 rounded-lg bg-gray-800 text-white text-sm font-medium hover:bg-gray-900 disabled:opacity-40"
+            >
+              {pwdSaving ? t.passwordSaving : t.changePassword}
+            </button>
+            {pwdMsg && (
+              <p
+                className={`text-sm mt-2 ${pwdMsg === t.passwordChanged ? 'text-green-700' : 'text-red-600'}`}
+              >
+                {pwdMsg}
+              </p>
+            )}
+          </div>
+        ) : (
+          <p className="text-xs text-amber-900 bg-amber-50 border border-amber-100 rounded-lg p-3 mt-4">{t.passwordDemo}</p>
+        )}
       </div>
 
       {isAdding && (
         <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-md mb-8 border border-gray-100 animate-fadeIn">
-          <h3 className="text-lg font-semibold mb-4 text-gray-700">{editingId ? 'Edit Offer' : 'New Offer'}</h3>
+          <h3 className="text-lg font-semibold mb-4 text-gray-700">{editingId ? t.formEditOffer : t.formNewOffer}</h3>
           
-          <div className="mb-4 flex items-center gap-2">
-            <input 
-              type="checkbox" 
-              id="isActive" 
-              checked={newOffer.isActive ?? true} 
-              onChange={e => setNewOffer({...newOffer, isActive: e.target.checked})}
-              className="w-5 h-5 text-sea-600 rounded focus:ring-sea-500 border-gray-300"
-            />
-            <label htmlFor="isActive" className="text-sm font-medium text-gray-700">{t.isActive}</label>
-          </div>
+          <fieldset className="mb-6 rounded-xl border border-sea-100 bg-sea-50/40 p-4">
+            <legend className="text-sm font-semibold text-sea-900 px-1">{t.visibilityHeading}</legend>
+            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:gap-4">
+              <label
+                className={`flex-1 cursor-pointer rounded-lg border-2 p-4 transition-colors ${
+                  newOffer.isActive !== false
+                    ? 'border-sea-600 bg-white shadow-sm'
+                    : 'border-gray-200 bg-white hover:border-gray-300'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="offerVisibility"
+                  className="sr-only"
+                  checked={newOffer.isActive !== false}
+                  onChange={() => setNewOffer({ ...newOffer, isActive: true })}
+                />
+                <span className="block font-medium text-gray-900">{t.visibilityPublishedTitle}</span>
+                <span className="mt-1 block text-xs text-gray-600">{t.visibilityPublishedDesc}</span>
+              </label>
+              <label
+                className={`flex-1 cursor-pointer rounded-lg border-2 p-4 transition-colors ${
+                  newOffer.isActive === false
+                    ? 'border-amber-500 bg-amber-50/60 shadow-sm'
+                    : 'border-gray-200 bg-white hover:border-gray-300'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="offerVisibility"
+                  className="sr-only"
+                  checked={newOffer.isActive === false}
+                  onChange={() => setNewOffer({ ...newOffer, isActive: false })}
+                />
+                <span className="block font-medium text-gray-900">{t.visibilityPausedTitle}</span>
+                <span className="mt-1 block text-xs text-gray-600">{t.visibilityPausedDesc}</span>
+              </label>
+            </div>
+          </fieldset>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <input placeholder={t.placeholders.title} className="border p-2 rounded" value={newOffer.title} onChange={e => setNewOffer({...newOffer, title: e.target.value})} required />
-            <input placeholder={t.placeholders.discount} className="border p-2 rounded" value={newOffer.discount} onChange={e => setNewOffer({...newOffer, discount: e.target.value})} required />
-            <input placeholder={t.placeholders.merchant} className="border p-2 rounded bg-gray-100" value={newOffer.merchantName} readOnly />
+            <div className="flex flex-col">
+              <input
+                placeholder={t.placeholders.discount}
+                className={`border p-2 rounded ${editingId ? 'bg-gray-100 text-gray-700 cursor-not-allowed opacity-90' : 'bg-white'}`}
+                value={newOffer.discount ?? ''}
+                onChange={(e) => !editingId && setNewOffer({ ...newOffer, discount: e.target.value })}
+                disabled={!!editingId}
+                required={!editingId}
+                aria-readonly={!!editingId}
+              />
+              <span className="text-xs text-gray-400 mt-1">
+                {editingId ? t.discountLockedHint : t.discountFieldHint}
+              </span>
+            </div>
             
             <div className="flex flex-col">
               <label className="text-xs text-gray-500 mb-1 ml-1">{t.placeholders.uploadImage}</label>
@@ -386,12 +692,26 @@ const AdminPanel = ({ lang, user }: { lang: Language, user: CompanyUser }) => {
             
             <div className="flex flex-col">
               <label className="text-xs text-gray-500 mb-1 ml-1">{t.placeholders.validFrom}</label>
-              <input type="date" className="border p-2 rounded" value={newOffer.validFrom || ''} onChange={e => setNewOffer({...newOffer, validFrom: e.target.value})} />
+              <input
+                type="date"
+                required
+                className="border p-2 rounded"
+                value={newOffer.validFrom || ''}
+                max={newOffer.validUntil || undefined}
+                onChange={(e) => setNewOffer({ ...newOffer, validFrom: e.target.value })}
+              />
             </div>
             
             <div className="flex flex-col">
               <label className="text-xs text-gray-500 mb-1 ml-1">{t.placeholders.validUntil}</label>
-              <input type="date" className="border p-2 rounded" value={newOffer.validUntil} onChange={e => setNewOffer({...newOffer, validUntil: e.target.value})} required />
+              <input
+                type="date"
+                required
+                className="border p-2 rounded"
+                value={newOffer.validUntil || ''}
+                min={newOffer.validFrom || undefined}
+                onChange={(e) => setNewOffer({ ...newOffer, validUntil: e.target.value })}
+              />
             </div>
 
             <div className="flex flex-col md:col-span-2">
@@ -438,42 +758,93 @@ const AdminPanel = ({ lang, user }: { lang: Language, user: CompanyUser }) => {
         </form>
       )}
 
-      <div className="bg-white rounded-xl shadow overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
+      <div className="bg-white rounded-xl shadow overflow-hidden border border-gray-100">
+        <div
+          className="flex flex-wrap gap-1 px-3 sm:px-4 pt-3 border-b border-gray-200 bg-gray-50/80"
+          role="tablist"
+          aria-label={t.title}
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={offerTab === 'active'}
+            id="tab-offers-active"
+            onClick={() => setOfferTab('active')}
+            className={`px-3 sm:px-4 py-2 rounded-t-lg text-sm font-medium border-b-2 -mb-px transition-colors ${
+              offerTab === 'active'
+                ? 'border-sea-600 text-sea-900 bg-white shadow-sm'
+                : 'border-transparent text-gray-500 hover:text-gray-800 hover:bg-white/60'
+            }`}
+          >
+            {t.tabActiveOffers}{' '}
+            <span className="text-gray-400 font-normal">({activeOffersList.length})</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={offerTab === 'archived'}
+            id="tab-offers-archived"
+            onClick={() => setOfferTab('archived')}
+            className={`px-3 sm:px-4 py-2 rounded-t-lg text-sm font-medium border-b-2 -mb-px transition-colors ${
+              offerTab === 'archived'
+                ? 'border-sea-600 text-sea-900 bg-white shadow-sm'
+                : 'border-transparent text-gray-500 hover:text-gray-800 hover:bg-white/60'
+            }`}
+          >
+            {t.tabArchivedOffers}{' '}
+            <span className="text-gray-400 font-normal">({archivedOffersList.length})</span>
+          </button>
+        </div>
+        {offerTab === 'archived' && (
+          <p className="px-4 py-2 text-xs text-gray-500 bg-white border-b border-gray-100">{t.tabArchivedHint}</p>
+        )}
+        <table className="min-w-full divide-y divide-gray-200" aria-labelledby={offerTab === 'active' ? 'tab-offers-active' : 'tab-offers-archived'}>
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.tableOffer}</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.tableMerchant}</th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">{t.tableStatus}</th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{t.tableActions}</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {offers.map(offer => (
-              <tr key={offer.id} className={!offer.isActive ? 'opacity-60 bg-gray-50' : ''}>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <img src={safeImageUrl(offer.imageUrl) || 'https://picsum.photos/40/40'} alt="" className="w-10 h-10 rounded-full mr-3 object-cover bg-gray-100" />
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">{offer.title}</div>
-                      <div className="text-sm text-gray-500">{offer.discount}</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{offer.merchantName}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-center">
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${offer.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                    {offer.isActive ? 'Active' : 'Inactive'}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <div className="flex justify-end gap-2 items-center">
-                    <button type="button" onClick={() => handleEdit(offer)} className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded cursor-pointer" title={t.tableActions}><IconFileText className="w-5 h-5" /></button>
-                    <button type="button" onClick={() => handleDelete(offer.id)} className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded cursor-pointer" title={t.confirmDelete}><IconTrash className="w-5 h-5" /></button>
-                  </div>
+            {displayedOffers.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="px-6 py-10 text-center text-sm text-gray-500">
+                  {offerTab === 'active' ? t.noActiveOffers : t.noArchivedOffers}
                 </td>
               </tr>
-            ))}
+            ) : (
+              displayedOffers.map((offer) => (
+                <tr key={offer.id} className={!offer.isActive ? 'opacity-60 bg-gray-50' : ''}>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <img src={safeImageUrl(offer.imageUrl) || 'https://picsum.photos/40/40'} alt="" className="w-10 h-10 rounded-full mr-3 object-cover bg-gray-100" />
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">{offer.title}</div>
+                        <div className="text-sm text-gray-500">{offer.discount}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{offer.merchantName}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <span
+                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        offer.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}
+                    >
+                      {offer.isActive ? t.statusActive : t.statusInactive}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <div className="flex justify-end gap-2 items-center">
+                      <button type="button" onClick={() => handleEdit(offer)} className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded cursor-pointer" title={t.tableActions}><IconFileText className="w-5 h-5" /></button>
+                      <button type="button" onClick={() => handleDelete(offer.id)} className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded cursor-pointer" title={t.confirmDelete}><IconTrash className="w-5 h-5" /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
@@ -481,35 +852,54 @@ const AdminPanel = ({ lang, user }: { lang: Language, user: CompanyUser }) => {
       <div className="mt-10 bg-white rounded-xl shadow overflow-hidden border border-sea-100">
         <div className="px-6 py-4 bg-sea-50 border-b border-sea-100">
           <h3 className="text-lg font-bold text-sea-900">{t.customersTitle}</h3>
-          <p className="text-sm text-gray-600 mt-1">{t.customersDesc}</p>
+          {t.customersDesc?.trim() ? (
+            <p className="text-sm text-gray-600 mt-1">{t.customersDesc}</p>
+          ) : null}
         </div>
         {consumers.length === 0 ? (
           <p className="p-6 text-gray-500 text-sm">{t.noCustomers}</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t.colEmail}</th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">{t.colCoupons}</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t.colLast}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {consumers.map((row, i) => (
-                  <tr key={row.email} className={i < 3 ? 'bg-sand-50/80' : ''}>
-                    <td className="px-6 py-3 text-sm text-gray-900 font-medium">{row.email}</td>
-                    <td className="px-6 py-3 text-sm text-center text-sea-700 font-bold">{row.couponCount}</td>
-                    <td className="px-6 py-3 text-sm text-gray-600">
-                      {row.lastCouponAt
-                        ? new Date(row.lastCouponAt).toLocaleString(lang === 'pt' ? 'pt-BR' : lang === 'es' ? 'es-ES' : 'en-US')
-                        : '—'}
-                    </td>
+          <>
+            <div className="overflow-x-auto max-h-[min(70vh,520px)] overflow-y-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t.colEmail}</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t.colOffer}</th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">{t.colCoupons}</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t.colLast}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {visibleConsumers.map((row, i) => (
+                    <tr key={`${row.email}::${row.offerId || '__'}`} className={i < 3 ? 'bg-sand-50/80' : ''}>
+                      <td className="px-6 py-3 text-sm text-gray-900 font-medium">{row.email}</td>
+                      <td className="px-6 py-3 text-sm text-gray-800">{displayOfferTitleForStat(row)}</td>
+                      <td className="px-6 py-3 text-sm text-center text-sea-700 font-bold">{row.couponCount}</td>
+                      <td className="px-6 py-3 text-sm text-gray-600">
+                        {row.lastCouponAt
+                          ? new Date(row.lastCouponAt).toLocaleString(lang === 'pt' ? 'pt-BR' : lang === 'es' ? 'es-ES' : 'en-US')
+                          : '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {consumers.length > CUSTOMER_LIST_PREVIEW && (
+              <div className="px-4 py-3 border-t border-sea-100 bg-sea-50/40 flex justify-center sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => setCustomersExpanded((v) => !v)}
+                  className="text-sm font-semibold text-sea-700 hover:text-sea-900 underline underline-offset-2 decoration-sea-300"
+                >
+                  {customersExpanded
+                    ? t.collapseCustomerList
+                    : t.expandCustomerList.replace('{n}', String(customerExtraCount))}
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
@@ -681,6 +1071,9 @@ const HowItWorks = ({ lang }: { lang: Language }) => {
       <p className="text-gray-600 max-w-2xl mx-auto">
         {t.description}
       </p>
+      <p className="text-sm text-sea-800/90 max-w-2xl mx-auto mt-3 font-medium">
+        {t.audienceNote}
+      </p>
     </div>
 
     <div className="grid md:grid-cols-2 gap-8">
@@ -758,14 +1151,23 @@ const App = () => {
   const tCats = translations[lang].categories;
 
   useEffect(() => {
-    const load = async () => setOffers(await getPublicOffers());
-    load();
-    
-    const unsubscribe = subscribeToAuthChanges((u) => {
+    const unsubOffers = subscribePublicOffers(setOffers);
+    const unsubAuth = subscribeToAuthChanges((u) => {
       setUser(u);
     });
-    return () => unsubscribe();
+    return () => {
+      unsubOffers();
+      unsubAuth();
+    };
   }, []);
+
+  useEffect(() => {
+    setSelectedOffer((prev) => {
+      if (!prev) return null;
+      const fresh = offers.find((o) => o.id === prev.id);
+      return fresh ?? prev;
+    });
+  }, [offers]);
 
   const handleLogout = async () => {
     await logoutCompany();
@@ -854,6 +1256,9 @@ const App = () => {
                 offer={selectedOffer} 
                 onClose={() => setSelectedOffer(null)} 
                 lang={lang}
+                onCouponGenerated={() => {
+                  getPublicOffers().then(setOffers);
+                }}
               />
             )}
           </>
@@ -892,7 +1297,7 @@ const App = () => {
               </div>
 
               {merchantTab === 'offers' ? (
-                <AdminPanel lang={lang} user={user} />
+                <AdminPanel lang={lang} user={user} onUserUpdate={setUser} />
               ) : (
                 <MerchantPanel lang={lang} merchantUid={user.uid} />
               )}

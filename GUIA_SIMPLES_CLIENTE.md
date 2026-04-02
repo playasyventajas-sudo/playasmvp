@@ -5,6 +5,25 @@ Objetivo: explicar, do zero, como usar o sistema no dia a dia.
 
 ---
 
+## 0) Para o dono do sistema: o que explicar a outros
+
+Use este bloco para explicar **em uma conversa** para **seus parceiros (empresas)** e para **o publico final**, sem precisar de detalhe tecnico.
+
+**Para o visitante (quem gera cupom no site):**
+- Cada **e-mail** pode gerar **um cupom por oferta**. Pode usar o **mesmo e-mail** em **outras** ofertas, mas nao pode ficar gerando dezenas de cupons na **mesma** promocao.
+- O cupom vale para **uma pessoa** nessa promocao (um uso por e-mail). Se forem **duas ou mais pessoas**, cada uma pode gerar o seu com um **e-mail diferente**, no respeito as regras do local (nao e automaticamente "cupom para casal").
+- E **obrigatorio** informar um e-mail no campo para gerar o QR; use um e-mail valido para controle no estabelecimento.
+- O **QR na tela** e o que vale no balcao; regras completas de dados pessoais estao nos **Termos** e **Privacidade** no rodape (LGPD). Reclamacoes sobre o site ou dados: **playasyventajas@gmail.com**.
+
+**Para a empresa (parceiro):**
+- No painel aparecem **e-mail + oferta** de quem pediu cupom, para operacao (nao substitui contrato nem obrigacao com o cliente).
+- Depois de criar a oferta, o **texto do desconto** (ex.: % ou 2x1) **nao muda**. Evita confusao com quem ja viu a promocao; da para ajustar texto de apoio, foto, datas, pausar, limite de cupons conforme o sistema.
+- **Datas de inicio e fim** sao obrigatorias e o fim nao pode ser antes do inicio.
+
+**Pagina "Como funciona":** e **publica** (todo mundo le, comerciante ou turista) para todos entenderem o mesmo fluxo.
+
+---
+
 ## 1) O que e o Playas e Ventajas
 
 E um sistema de ofertas com QR Code:
@@ -17,15 +36,16 @@ E um sistema de ofertas com QR Code:
 
 1. Abrir o site publico.
 2. Escolher uma oferta.
-3. Clicar em **Gerar Cupom**.
-4. Informar e-mail.
-5. O sistema mostra um **QR Code** na tela.
-6. No estabelecimento, a equipe da empresa valida o codigo.
+3. Se a oferta tiver **limite de cupons**, a pagina pode mostrar **quantos ainda restam** (atualiza quando alguem gera um cupom).
+4. Clicar em **Gerar Cupom**.
+5. Informar e-mail (um cupom por e-mail **por oferta**; o mesmo e-mail pode usar em outras ofertas).
+6. O sistema mostra um **QR Code** na tela.
+7. No estabelecimento, a equipe da empresa valida o codigo.
 
 Importante (MVP):
 - O e-mail do turista fica registrado no Firebase na colecao **`coupons`** (controle do cupom).
 - O **QR Code na tela** e o que vale para usar no estabelecimento; isso **esta** no MVP.
-- **Nao esta incluido no escopo do MVP** a entrega automatica do cupom **na caixa de entrada** de e-mail. Isso fica para uma **segunda fase** (veja secao abaixo). O app pode **preparar** a fila (colecao `mail`), mas **enviar** e-mail de verdade exige configuracao extra no Firebase e um provedor de e-mail — nao e so "ligar o site".
+- **Nao esta incluido no escopo do MVP** a entrega automatica do cupom **na caixa de entrada** de e-mail. Isso fica para uma **segunda fase** (veja secao abaixo). O app pode **preparar** a fila (colecao `mail`), mas **enviar** e-mail de verdade exige configuracao extra no Firebase e um provedor de e-mail. Nao e so "ligar o site".
 
 ---
 
@@ -34,7 +54,7 @@ Importante (MVP):
 **O que nao entra no MVP e por que**
 
 - O **navegador** nao pode enviar e-mail sozinho de forma segura.
-- O produto usa uma **fila** no Firebase (`mail`) para o futuro envio; quem **dispara** o e-mail e uma **extensao** (Trigger Email) + **SMTP** (servidor de e-mail), configurados no **Console** — nao no codigo do site.
+- O produto usa uma **fila** no Firebase (`mail`) para o futuro envio; quem **dispara** o e-mail e uma **extensao** (Trigger Email) + **SMTP** (servidor de e-mail), configurados no **Console**, nao no codigo do site.
 - Isso costuma exigir projeto Firebase em modo **Blaze** (cobranca por uso do Google Cloud, com cartao cadastrado) e um pouco de trabalho de configuracao. Por isso fica **fora do MVP** para o produto nao depender disso no dia 1.
 
 **Estimativa de custo (ordem de grandeza, trafego baixo de MVP)**
@@ -50,7 +70,7 @@ Importante (MVP):
 4. Na instalacao, configure:
    - **Coleção de origem:** `mail` (e o nome que o app usa para enfileirar).
    - **SMTP:** URI fornecida pelo seu provedor de e-mail (ex.: Zoho, Gmail com senha de app, SendGrid, etc.).
-5. Confira as **regras do Firestore** publicadas (o repositorio ja inclui regras para `mail` — ver `README_DEPLOY.md` ou `firestore.rules`).
+5. Confira as **regras do Firestore** publicadas (o repositorio ja inclui regras para `mail`; ver `README_DEPLOY.md` ou `firestore.rules`).
 6. Faça um teste: gere um cupom no site com um e-mail real e verifique se chegou (e a pasta de **spam**).
 
 **Resumo:** no MVP o turista usa o **QR na tela**; na **segunda fase** voce ativa a **entrega por e-mail** seguindo os passos acima.
@@ -99,8 +119,8 @@ Importante sobre multiempresa:
 
 | Onde | MVP (incluido) | Segunda fase (nao obrigatorio no lancamento) |
 |------|----------------|-----------------------------------------------|
-| Cupom + QR na tela | Sim | — |
-| Dados em `coupons` | Sim | — |
+| Cupom + QR na tela | Sim | - |
+| Dados em `coupons` | Sim | - |
 | E-mail do cupom **na caixa de entrada** | Nao (fora do escopo) | Sim, com Trigger Email + SMTP + Blaze |
 
 ---
@@ -127,7 +147,7 @@ Importante sobre multiempresa:
   - `offers` (ofertas)
   - `coupons` (cupons)
   - `companies` (cadastro da empresa: nome, CNPJ, e-mail, datas de criacao/atualizacao quando aplicavel)
-  - `mail` (fila **reservada para a fase 2** — envio real so depois de extensao + SMTP; ver secao 2b)
+  - `mail` (fila **reservada para a fase 2**; envio real so depois de extensao + SMTP; ver secao 2b)
 - **Storage**:
   - pasta `offers/` com as imagens das promocoes
 
@@ -181,7 +201,7 @@ Google Cloud e usado mais para administracao de permissoes e servicos avancados.
 
 ## 9) O que ainda e evolucao (proxima fase)
 
-- **Entrega do cupom por e-mail na caixa de entrada** — **nao faz parte do MVP**; passo a passo na secao **2b** (Trigger Email + SMTP + Blaze; estimativa de custo la).
+- **Entrega do cupom por e-mail na caixa de entrada**: **nao faz parte do MVP**; passo a passo na secao **2b** (Trigger Email + SMTP + Blaze; estimativa de custo la).
 - Regras extras antifraude/rate limit
 - Relatorios de uso mais avancados
 
