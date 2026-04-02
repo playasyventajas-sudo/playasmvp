@@ -558,7 +558,23 @@ const AdminPanel = ({
       {isAdding && (
         <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-md mb-8 border border-gray-100 animate-fadeIn">
           <h3 className="text-lg font-semibold mb-4 text-gray-700">{editingId ? t.formEditOffer : t.formNewOffer}</h3>
-          
+
+          {editingId ? (
+            <div
+              className="mb-6 rounded-xl border border-sea-200/80 bg-sea-50/50 p-4 text-sm text-gray-800"
+              role="region"
+              aria-label={t.editAfterPublishTitle}
+            >
+              <p className="font-semibold text-sea-900 mb-2">{t.editAfterPublishTitle}</p>
+              <p className="mb-2 leading-relaxed">{t.editAfterPublishIntro}</p>
+              <ul className="list-disc pl-5 space-y-1.5 leading-relaxed">
+                {t.editAfterPublishBullets.map((line, i) => (
+                  <li key={i}>{line}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
           <fieldset className="mb-6 rounded-xl border border-sea-100 bg-sea-50/40 p-4">
             <legend className="text-sm font-semibold text-sea-900 px-1">{t.visibilityHeading}</legend>
             <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:gap-4">
