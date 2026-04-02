@@ -160,6 +160,7 @@ Observacao: as ofertas foram intencionalmente criadas para validacao do MVP.
 - [x] Upload de imagem no Storage
 - [x] Geracao e validacao basica de cupom
 - [x] Cupom + QR + dados em `coupons` (MVP entregue)
+- [x] Limite opcional de cupons por oferta (painel, Firestore, regras — ver secao 4 e 5)
 - [ ] **Fora do MVP:** entrega automatica do cupom **na caixa de entrada** (fase 2; fila `mail` + Trigger Email + SMTP — ver secao 10)
 
 ## 10) Fase 2 (pos-MVP): entrega do e-mail do cupom — por que nao entrou no MVP, custo e passos
