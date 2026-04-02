@@ -148,7 +148,7 @@ export const translations = {
       visibilityPausedDesc: "Não aparece na lista pública. Você pode voltar a publicar quando quiser.",
       dateBothRequired: "Preencha a data de início e a data de término da oferta.",
       dateOrderInvalid: "A data de início não pode ser depois da data de término. Ajuste uma das duas.",
-      editAfterPublishTitle: "Edição limitada (igual ao padrão de mercado)",
+      editAfterPublishTitle: "Edição limitada",
       editAfterPublishIntro:
         "Depois de criar, só é possível alterar as datas de vigência e o limite de cupons (QR). Título, descrição, imagem, categorias, tipo de promoção e publicar ou pausar ficam fixos.",
       editAfterPublishBullets: [
@@ -387,7 +387,7 @@ export const translations = {
       visibilityPausedDesc: "Hidden from the public list. You can publish again anytime.",
       dateBothRequired: "Please set both the start date and the end date of the offer.",
       dateOrderInvalid: "The start date cannot be after the end date. Adjust one of them.",
-      editAfterPublishTitle: "Limited editing (market-style)",
+      editAfterPublishTitle: "Limited editing",
       editAfterPublishIntro:
         "After creation, only validity dates and max coupons (QR) can be changed. Title, description, image, categories, promotion type, and publish/pause stay fixed.",
       editAfterPublishBullets: [
@@ -627,7 +627,7 @@ export const translations = {
       visibilityPausedDesc: "No aparece en la lista pública. Puedes volver a publicar cuando quieras.",
       dateBothRequired: "Completa la fecha de inicio y la fecha de fin de la oferta.",
       dateOrderInvalid: "La fecha de inicio no puede ser posterior a la fecha de fin. Corrige una de las dos.",
-      editAfterPublishTitle: "Edición limitada (como en el mercado)",
+      editAfterPublishTitle: "Edición limitada",
       editAfterPublishIntro:
         "Tras crear, solo puedes cambiar las fechas de vigencia y el máximo de cupones (QR). Título, descripción, imagen, categorías, tipo de promoción y publicar o pausar quedan fijos.",
       editAfterPublishBullets: [
