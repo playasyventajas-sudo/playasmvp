@@ -55,6 +55,8 @@ export interface ConsumerEmailAggregate {
   email: string;
   /** Quantas ofertas distintas da empresa geraram ao menos um cupom para este e-mail */
   distinctOfferCount: number;
+  /** Total de documentos de cupom (gerados) para este e-mail neste comerciante */
+  claimedCouponCount: number;
   /** Total de cupons validados (USED) deste e-mail nas ofertas deste comerciante */
   validatedCouponCount: number;
   lastCouponAt: number;

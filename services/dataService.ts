@@ -543,14 +543,19 @@ function buildConsumerStatsFromCoupons(
     .slice(0, 50);
 }
 
-/** Ranking por e-mail: ofertas distintas e cupons validados (USED). */
+/** Ranking por e-mail: prioriza validações (USED); se o comerciante ainda não tiver nenhuma validação, prioriza quem mais gerou cupons. */
 function buildEmailAggregatesFromCoupons(
   coupons: Coupon[],
   merchantUid: string
 ): ConsumerEmailAggregate[] {
   const map = new Map<
     string,
-    { offerIds: Set<string>; validatedCouponCount: number; lastCouponAt: number }
+    {
+      offerIds: Set<string>;
+      claimedCouponCount: number;
+      validatedCouponCount: number;
+      lastCouponAt: number;
+    }
   >();
   coupons.forEach((c) => {
     if (c.merchantUid !== merchantUid) return;
@@ -560,27 +565,45 @@ function buildEmailAggregatesFromCoupons(
     const prev =
       map.get(raw) || {
         offerIds: new Set<string>(),
+        claimedCouponCount: 0,
         validatedCouponCount: 0,
         lastCouponAt: 0
       };
     prev.offerIds.add(offerKey);
+    prev.claimedCouponCount += 1;
     if (c.status === "USED") prev.validatedCouponCount += 1;
     prev.lastCouponAt = Math.max(prev.lastCouponAt, c.createdAt || 0);
     map.set(raw, prev);
   });
+
+  const merchantHasAnyValidation = coupons.some(
+    (c) => c.merchantUid === merchantUid && c.status === "USED"
+  );
+
   return Array.from(map.entries())
     .map(([email, v]) => ({
       email,
       distinctOfferCount: v.offerIds.size,
+      claimedCouponCount: v.claimedCouponCount,
       validatedCouponCount: v.validatedCouponCount,
       lastCouponAt: v.lastCouponAt
     }))
-    .sort(
-      (a, b) =>
+    .sort((a, b) => {
+      if (merchantHasAnyValidation) {
+        return (
+          b.validatedCouponCount - a.validatedCouponCount ||
+          b.claimedCouponCount - a.claimedCouponCount ||
+          b.distinctOfferCount - a.distinctOfferCount ||
+          b.lastCouponAt - a.lastCouponAt
+        );
+      }
+      return (
+        b.claimedCouponCount - a.claimedCouponCount ||
         b.distinctOfferCount - a.distinctOfferCount ||
         b.validatedCouponCount - a.validatedCouponCount ||
         b.lastCouponAt - a.lastCouponAt
-    )
+      );
+    })
     .slice(0, 50);
 }
 

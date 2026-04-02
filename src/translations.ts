@@ -111,7 +111,7 @@ export const translations = {
       uploading: "Enviando imagem...",
       customersTopTitle: "Ranking por e-mail",
       customersTopDesc:
-        "Uma linha por e-mail: quantas ofertas diferentes da sua empresa essa pessoa já pediu cupom e quantos cupons já foram validados no estabelecimento (scanner ou código digitado). Quem participou em mais ofertas aparece primeiro; em empate, quem tem mais validados; os três primeiros em destaque.",
+        "Uma linha por e-mail: ofertas diferentes em que pediu cupom, cupons validados no estabelecimento e último cupom. O topo prioriza quem mais validou cupom (scanner ou código). Se ainda não houver nenhuma validação no seu estabelecimento, a ordem é quem mais gerou cupom; os três primeiros em destaque.",
       expandCustomerTopList: "Ver mais no ranking ({n})",
       collapseCustomerTopList: "Ver menos no ranking",
       customersTitle: "Detalhe por e-mail e oferta",
@@ -200,9 +200,9 @@ export const translations = {
       merchantSectionTitle: "Para a empresa parceira",
       merchantParagraphs: [
         "A área da empresa é onde você se cadastra, entra com login e gerencia suas ofertas. Ali você monta texto, foto, coloca a data de início e a data de fim no formulário, uma ao lado da outra, escolhe se a oferta fica publicada ou pausada e pode colocar um limite opcional de cupons em QR.",
-        "Você pode mudar o nome do estabelecimento quando quiser. Ao editar uma oferta que já existe, não é possível mudar o tipo de promoção, por exemplo se era percentual ou 2 por 1. Você pode mudar título, descrição, imagem, datas, publicar ou pausar e o limite de cupons. Quando há limite, o painel mostra quantos cupons já foram emitidos e quantos faltam. As ofertas aparecem em duas abas: em andamento e arquivo, para as que estão pausadas ou com vigência já encerrada por data.",
+        "Você pode mudar o nome do estabelecimento quando quiser. Ao editar uma oferta que já existe, não é possível mudar o tipo de promoção (campo de desconto), nem título, descrição, imagem nem categorias. Você pode alterar datas de vigência, limite de cupons (QR) e publicar ou pausar. Quando há limite, o painel mostra quantos cupons já foram emitidos e quantos faltam. As ofertas aparecem em duas abas: em andamento e arquivo, para as que estão pausadas ou com vigência já encerrada por data.",
         "Se esquecer a senha, na tela de login use o texto para recuperar senha, informe o e-mail do cadastro e abra o e-mail que chegar. Nesse e-mail há um link. Ao clicar, abre uma página segura fora deste painel onde você digita a nova senha e confirma na mesma tela. Não é dentro do site do Playas e Ventajas que fica essa confirmação, e sim na página que abre pelo link do e-mail.",
-        "Na área logada você vê uma lista de e-mails que pediram cupom em cada oferta, para ajudar na operação no balcão.",
+        "Na área logada você vê uma lista de e-mails que pediram cupom em cada oferta, para ajudar na operação no balcão. Há um ranking por e-mail: enquanto não houver nenhuma validação no seu estabelecimento, quem aparece primeiro é quem mais gerou cupom; depois que houver validações, o topo é quem mais validou cupom.",
         "Use o leitor de QR na área da empresa para marcar o cupom como usado quando o cliente mostrar o código.",
         "Dúvidas sobre o site ou dados pessoais: use o e-mail indicado na Política de Privacidade no rodapé."
       ]
@@ -349,7 +349,7 @@ export const translations = {
       uploading: "Uploading image...",
       customersTopTitle: "Ranking by email",
       customersTopDesc:
-        "One row per email: how many different offers from your business that person has claimed, and how many coupons were validated at your place (scanner or manual code). More distinct offers first; ties broken by more validations; top three highlighted.",
+        "One row per email: distinct offers claimed, coupons validated on site, and last coupon. The top prioritizes who validated the most coupons (scanner or manual). If you have no validations yet, order is by who generated the most coupons; top three highlighted.",
       expandCustomerTopList: "Show more in ranking ({n})",
       collapseCustomerTopList: "Show less in ranking",
       customersTitle: "Detail by email and offer",
@@ -437,9 +437,9 @@ export const translations = {
       merchantSectionTitle: "For partner businesses",
       merchantParagraphs: [
         "The merchant area is where you register, sign in, and manage your offers. You add copy and photo, set the start date and end date side by side in the form, choose whether the offer is published or paused, and you can set an optional QR coupon limit.",
-        "You can change the establishment name anytime. When you edit an offer that already exists, you cannot change the promotion type, for example percent off or two for one. You can change title, description, image, dates, publish or pause, and the coupon limit. When there is a limit, the dashboard shows how many coupons were issued and how many are left. Offers appear in two tabs: active and archive, for paused offers or offers whose end date has passed.",
+        "You can change the establishment name anytime. When you edit an offer that already exists, you cannot change the promotion type (discount field), or the title, description, image, or categories. You can change validity dates, the QR coupon limit, and publish or pause. When there is a limit, the dashboard shows how many coupons were issued and how many are left. Offers appear in two tabs: active and archive, for paused offers or offers whose end date has passed.",
         "If you forgot your password, on the login screen use the recovery text, enter your registered email, and open the email you receive. That email contains a link. When you click it, a secure page opens outside this dashboard where you enter and confirm your new password on that same screen. That confirmation is not inside the Playas e Ventajas site; it is on the page that opens from the email link.",
-        "In the signed in area you see a list of emails that requested coupons for each offer, to help at the counter.",
+        "In the signed-in area you see a list of emails that requested coupons for each offer, to help at the counter. There is also an email ranking: until someone validates a coupon at your place, the top is who generated the most coupons; after validations exist, the top is who validated the most.",
         "Use the QR scanner in the merchant area to mark a coupon as used when the customer shows the code.",
         "Questions about the site or personal data: use the email in the Privacy Policy in the footer."
       ]
@@ -586,7 +586,7 @@ export const translations = {
       uploading: "Subiendo imagen...",
       customersTopTitle: "Ranking por correo",
       customersTopDesc:
-        "Una fila por correo: cuántas ofertas distintas de tu negocio pidió cupón esa persona y cuántos cupones ya validaste en el local (lector o código). Primero quien tiene más ofertas distintas; en empate, más validados; los tres primeros destacan.",
+        "Una fila por correo: ofertas distintas con cupón, cupones validados en el local y último cupón. Arriba primero quien más validó cupones (lector o código). Si aún no hay ninguna validación en tu local, el orden es por quien más generó cupones; los tres primeros destacan.",
       expandCustomerTopList: "Ver más en el ranking ({n})",
       collapseCustomerTopList: "Ver menos en el ranking",
       customersTitle: "Detalle por correo y oferta",
@@ -675,9 +675,9 @@ export const translations = {
       merchantSectionTitle: "Para la empresa socia",
       merchantParagraphs: [
         "El área de empresa es donde te registras, inicias sesión y gestionas tus ofertas. Ahí pones texto y foto, indicas la fecha de inicio y la fecha de fin en el formulario, una al lado de la otra, eliges si la oferta queda publicada o pausada y puedes poner un límite opcional de cupones en QR.",
-        "Puedes cambiar el nombre del establecimiento cuando quieras. Al editar una oferta que ya existe, no puedes cambiar el tipo de promoción, por ejemplo porcentaje o 2 por 1. Sí puedes cambiar título, descripción, imagen, fechas, publicar o pausar y el límite de cupones. Cuando hay límite, el panel muestra cuántos cupones ya se emitieron y cuántos quedan. Las ofertas aparecen en dos pestañas: en curso y archivo, para las pausadas o con vigencia ya cerrada por fecha.",
+        "Puedes cambiar el nombre del establecimiento cuando quieras. Al editar una oferta que ya existe, no puedes cambiar el tipo de promoción (campo de descuento), ni título, descripción, imagen ni categorías. Sí puedes cambiar las fechas de vigencia, el límite de cupones (QR) y publicar o pausar. Cuando hay límite, el panel muestra cuántos cupones ya se emitieron y cuántos quedan. Las ofertas aparecen en dos pestañas: en curso y archivo, para las pausadas o con vigencia ya cerrada por fecha.",
         "Si olvidaste la contraseña, en la pantalla de inicio de sesión usa el texto para recuperarla, escribe el correo del registro y abre el correo que llega. Ese correo trae un enlace. Al hacer clic, se abre una página segura fuera de este panel donde escribes la contraseña nueva y la confirmas en la misma pantalla. Esa confirmación no está dentro del sitio de Playas e Ventajas, sino en la página que abre el enlace del correo.",
-        "En el área privada ves una lista de correos que pidieron cupón en cada oferta, para ayudar en la operación en el mostrador.",
+        "En el área privada ves una lista de correos que pidieron cupón en cada oferta, para ayudar en la operación en el mostrador. También hay un ranking por correo: mientras no haya ninguna validación en tu local, arriba quien más generó cupones; cuando ya existan validaciones, arriba quien más validó cupones.",
         "Usa el lector QR en el área de empresa para marcar el cupón como usado cuando el cliente muestre el código.",
         "Dudas sobre el sitio o datos personales: usa el correo indicado en la Política de Privacidad en el pie."
       ]

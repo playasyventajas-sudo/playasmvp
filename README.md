@@ -19,10 +19,11 @@ Aplicação web progressiva (PWA) que conecta turistas a ofertas exclusivas em e
 
 ### Para Empresas (Área do Comerciante)
 - Login e cadastro seguro
-- Painel administrativo: criar, editar e excluir ofertas
+- Painel administrativo: criar, editar (vigência, limite de cupons, publicar/pausar) e excluir ofertas
 - Upload de imagens (máx. 2MB): Firebase Storage em produção
 - Definir validade, categorias e status (Ativo/Inativo)
 - **Limite opcional de cupons (QR):** número inteiro mínimo **5**; ao atingir o limite, a oferta passa a **inativa** e **some da home** pública. Vazio = sem limite. A home usa `subscribePublicOffers` para o contador **restam X de Y** acompanhar novos pedidos (Firestore: `maxCoupons`, `couponsIssued`; ver `firestore.rules` e `README_DEPLOY.md`)
+- **Base de clientes:** tabela detalhada por e-mail × oferta; **ranking por e-mail** prioriza quem mais **validou** cupons no estabelecimento; se ainda não houver nenhuma validação nos dados daquele comerciante, o ranking usa quem mais **gerou** cupons
 - QR Scanner para validar cupons (câmera ou código manual)
 
 ---
@@ -96,6 +97,9 @@ Testes manuais recomendados após alterar regras: `firebase deploy --only firest
 
 ## Changelog / Correções Aplicadas
 
+### Ranking por e-mail no painel (2026-03-31)
+- Ordenação do bloco **ranking por e-mail** prioriza **validações** (`USED`); se o comerciante ainda não tiver nenhuma validação nos cupons retornados, ordena por **mais cupons gerados**. Ver `buildEmailAggregatesFromCoupons` em `services/dataService.ts`.
+
 ### Limite de cupons por oferta (2026-03-31)
 - **Painel:** campo opcional “Máximo de cupons (QR)” (mín. 5 se preenchido; vazio = ilimitado).
 - **Firestore:** `maxCoupons`, `couponsIssued`; geração com transação quando há limite; ao esgotar, `isActive: false` (some da query pública).
@@ -123,7 +127,7 @@ Testes manuais recomendados após alterar regras: `firebase deploy --only firest
 - **Mensagem de gamificação:** Texto curto no modal do cupom incentivando uso do mesmo e-mail (PT, EN, ES)
 
 ### Validações
-- CRUD de ofertas: todos os campos (título, desconto, descrição, imagem, datas, categorias, status) salvam e carregam corretamente
+- Ofertas: criação com todos os campos; **edição** no painel limitada a datas de vigência, limite de cupons (QR), publicar/pausar (demais campos fixos após criar; ver `updateOffer` em `dataService.ts`)
 
 ---
 
