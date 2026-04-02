@@ -371,6 +371,13 @@ const AdminPanel = ({
         const hadLimit = prev.maxCoupons != null && prev.maxCoupons >= 5;
         const hasLimitNow = mc != null && mc >= 5;
         const wantPublished = newOffer.isActive !== false;
+        const prevIssued = prev.couponsIssued ?? 0;
+        /** Estava esgotado ou acima do teto anterior (ex.: emitidos 10 com máx 5). Subir o máximo acima dos emitidos deve voltar a publicar. */
+        const wasAtOrOverPreviousCap =
+          hadLimit &&
+          prev.maxCoupons != null &&
+          prev.maxCoupons >= 5 &&
+          prevIssued >= prev.maxCoupons;
 
         if (hadLimit && !hasLimitNow) {
           await updateOffer(editingId, {
@@ -389,7 +396,6 @@ const AdminPanel = ({
             isActive: cnt >= (mc as number) ? false : wantPublished
           } as OfferUpdateInput);
         } else {
-          const prevIssued = prev.couponsIssued ?? 0;
           const patch: OfferUpdateInput = {
             validFrom: vf,
             validUntil: vu
@@ -398,6 +404,8 @@ const AdminPanel = ({
             patch.maxCoupons = mc;
             if (prevIssued >= mc) {
               patch.isActive = false;
+            } else if (wasAtOrOverPreviousCap) {
+              patch.isActive = true;
             } else {
               patch.isActive = wantPublished;
             }
