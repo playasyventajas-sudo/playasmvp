@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { FirebaseError } from 'firebase/app';
 import { Offer, Coupon, UserRole, CompanyUser, Category, ConsumerStat, ConsumerEmailAggregate } from './types';
-import { getPublicOffers, subscribePublicOffers, getMerchantOffers, getMerchantConsumerDashboard, createOffer, updateOffer, deleteOffer, generateCoupon, validateCoupon, uploadImage, countCouponsForOffer, getOfferCouponLimitInfo, COUPON_SOLD_OUT, COUPON_ALREADY_CLAIMED, COUPON_INVALID_EMAIL } from './services/dataService';
+import { getPublicOffers, subscribePublicOffers, getMerchantOffers, getMerchantConsumerDashboard, createOffer, updateOffer, deleteOffer, generateCoupon, validateCoupon, uploadImage, countCouponsForOffer, getOfferCouponLimitInfo, toCanonicalYmd, COUPON_SOLD_OUT, COUPON_ALREADY_CLAIMED, COUPON_INVALID_EMAIL } from './services/dataService';
 import type { OfferUpdateInput } from './services/dataService';
 import { safeImageUrl } from './utils/safeUrl';
 import { subscribeToAuthChanges, logoutCompany, updateCompanyDisplayName } from './services/authService';
@@ -1158,9 +1158,11 @@ const App = () => {
   };
 
   const filteredOffers = offers.filter(offer => {
-    const now = new Date().toISOString().split('T')[0];
-    if (offer.validUntil < now) return false;
-    if (offer.validFrom && offer.validFrom > now) return false;
+    const now = localDateYmd();
+    const until = toCanonicalYmd(offer.validUntil as unknown);
+    if (!until || until < now) return false;
+    const from = offer.validFrom ? toCanonicalYmd(offer.validFrom as unknown) : undefined;
+    if (from && from > now) return false;
     if (!offer.isActive) return false;
     if (selectedCategories.length > 0) {
       if (!offer.categories || !offer.categories.some(c => selectedCategories.includes(c))) return false;

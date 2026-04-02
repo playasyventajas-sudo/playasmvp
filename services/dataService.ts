@@ -182,16 +182,39 @@ function coerceNumberField(v: unknown): number | undefined {
   return undefined;
 }
 
-/** Converte string ou Timestamp do Firestore em `YYYY-MM-DD` para comparação na UI. */
-function normalizeDateYmd(v: unknown): string | undefined {
+/**
+ * Converte valor vindo do Firestore ou do formulário em `YYYY-MM-DD` canônico.
+ * Evita comparações lexicográficas erradas (ex.: 2026-4-5 vs 2026-04-05) e suporta Timestamp.
+ */
+export function toCanonicalYmd(v: unknown): string | undefined {
   if (v == null || v === "") return undefined;
   if (typeof v === "string") {
     const t = v.trim().slice(0, 10);
     if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
+    const m = v.trim().match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (m) {
+      const y = Number(m[1]);
+      const mo = Number(m[2]);
+      const d = Number(m[3]);
+      if (y >= 1000 && y <= 9999 && mo >= 1 && mo <= 12 && d >= 1 && d <= 31) {
+        return `${y}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+      }
+    }
     return undefined;
   }
   if (v instanceof Timestamp) {
     const d = v.toDate();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+  if (typeof v === "object" && v !== null && "seconds" in (v as object)) {
+    const sec = (v as { seconds: number }).seconds;
+    if (typeof sec === "number" && Number.isFinite(sec)) {
+      const d = new Date(sec * 1000);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    }
+  }
+  if (v instanceof Date && !isNaN(v.getTime())) {
+    const d = v;
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   }
   return undefined;
@@ -204,10 +227,13 @@ export function normalizeOfferFromFirestore(id: string, data: Record<string, unk
   if (mc !== undefined) o.maxCoupons = mc;
   const ci = coerceNumberField(data.couponsIssued);
   if (ci !== undefined) o.couponsIssued = ci;
-  const vf = normalizeDateYmd(data.validFrom);
+  const vf = toCanonicalYmd(data.validFrom) ?? toCanonicalYmd(o.validFrom as unknown);
   if (vf !== undefined) o.validFrom = vf;
-  const vu = normalizeDateYmd(data.validUntil);
+  const vu = toCanonicalYmd(data.validUntil) ?? toCanonicalYmd(o.validUntil as unknown);
   if (vu !== undefined) o.validUntil = vu;
+  if (typeof data.isActive === "string") {
+    o.isActive = data.isActive === "true" || data.isActive === "1";
+  }
   return o;
 }
 

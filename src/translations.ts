@@ -53,7 +53,7 @@ export const translations = {
       validUntil: "Válido até",
       getCoupon: "Pegar Cupom",
       couponsRemaining: "Restam {remaining} de {total} cupons",
-      couponsFewLeft: "Poucas vagas"
+      couponsFewLeft: "Poucos cupons"
     },
     couponModal: {
       title: "Garanta seu cupom",
@@ -284,7 +284,7 @@ export const translations = {
       validUntil: "Valid until",
       getCoupon: "Get Coupon",
       couponsRemaining: "{remaining} of {total} coupons left",
-      couponsFewLeft: "Almost gone"
+      couponsFewLeft: "Few coupons left"
     },
     couponModal: {
       title: "Get your coupon",
@@ -514,7 +514,7 @@ export const translations = {
       validUntil: "Válido hasta",
       getCoupon: "Obtener Cupón",
       couponsRemaining: "Quedan {remaining} de {total} cupones",
-      couponsFewLeft: "Últimas plazas"
+      couponsFewLeft: "Pocos cupones"
     },
     couponModal: {
       title: "Obtén tu cupón",
