@@ -92,7 +92,7 @@ Importante (MVP):
    - (opcional) **maximo de cupons (QR)**: numero inteiro **no minimo 5**; ao esgotar, a oferta fica inativa e some da home publica. Em branco = sem limite.
 5. Salvar.
 6. Para editar ou excluir, usar os icones na tabela.
-7. Abaixo da tabela de ofertas, conferir a **base de clientes** (e-mails que geraram cupom nas suas ofertas) e o **top consumidores** (ordenado por quantidade de cupons; os 3 primeiros em destaque). Os dados vêm dos cupons gravados no Firebase.
+7. Abaixo da tabela de ofertas: **ranking por e-mail** (quantas ofertas distintas da sua empresa cada pessoa já pediu cupom e quantos cupons já foram validados no estabelecimento; os 3 primeiros em destaque) e **detalhe por e-mail e oferta** (cupons gerados e quantos validados naquela combinação). Os dados vêm dos cupons no Firebase.
 
 ### Home publica x area interna (multiempresa)
 

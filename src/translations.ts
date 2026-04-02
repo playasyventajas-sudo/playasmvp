@@ -33,7 +33,11 @@ export const translations = {
       resetError: "Não foi possível enviar o e-mail. Tente novamente ou confira se o e-mail está correto.",
       resetUserNotFound: "Não encontramos uma conta com este e-mail.",
       authError: "Erro na autenticação. Verifique suas credenciais.",
-      fillAll: "Preencha todos os campos."
+      fillAll: "Preencha todos os campos.",
+      loginSubtitle:
+        "Use o e-mail e a senha do cadastro. Se esquecer a senha, use o link logo abaixo dos campos.",
+      resetPasswordDescription:
+        "Informe o e-mail que você usou no cadastro. Você recebe um link para criar uma senha nova."
     },
     home: {
       title: "Descubra as Melhores",
@@ -62,7 +66,8 @@ export const translations = {
       codeLabel: "Código do Cupom:",
       instruction: "Apresente este QR code ao comerciante para resgatar.",
       gamificationMsg: "Quanto mais cupons você usar, mais perto de benefícios exclusivos! Use sempre o mesmo e-mail para acumular vantagens.",
-      emailNotQueuedHint: "O cupom acima é válido. O envio automático por e-mail não pôde ser enfileirado (rede ou regras do Firestore).",
+      emailNotQueuedHint:
+        "O cupom acima é válido. O envio automático por e-mail não funcionou agora. Use o QR na tela ou tente de novo mais tarde.",
       close: "Fechar",
       error: "Erro ao gerar cupom",
       soldOut: "Esta oferta esgotou os cupons disponíveis ou não está mais ativa.",
@@ -84,7 +89,8 @@ export const translations = {
       statusInactive: "Inativa",
       tabActiveOffers: "Em andamento",
       tabArchivedOffers: "Arquivo",
-      tabArchivedHint: "Pausadas ou com vigência encerrada",
+      tabArchivedHint:
+        "Pausadas ou com data de término já passada. Para aparecer em Em andamento: marque publicar na edição e ajuste a data fim para depois de hoje.",
       noArchivedOffers: "Nenhuma oferta pausada ou com vigência encerrada.",
       noActiveOffers: "Nenhuma oferta em andamento. As pausadas ou com vigência encerrada ficam no Arquivo.",
       expandCustomerList: "Ver mais ({n})",
@@ -103,17 +109,27 @@ export const translations = {
       },
       confirmDelete: "Tem certeza que deseja excluir esta oferta?",
       uploading: "Enviando imagem...",
-      customersTitle: "Base de clientes e top consumidores",
+      customersTopTitle: "Ranking por e-mail",
+      customersTopDesc:
+        "Uma linha por e-mail: quantas ofertas diferentes da sua empresa essa pessoa já pediu cupom e quantos cupons já foram validados no estabelecimento (scanner ou código digitado). Quem participou em mais ofertas aparece primeiro; em empate, quem tem mais validados; os três primeiros em destaque.",
+      expandCustomerTopList: "Ver mais no ranking ({n})",
+      collapseCustomerTopList: "Ver menos no ranking",
+      customersTitle: "Detalhe por e-mail e oferta",
       customersDesc:
-        "E-mails de quem pediu cupom nas suas ofertas. Em cada linha aparece a oferta. Quem pediu mais cupons vem primeiro; os três primeiros ficam em destaque.",
+        "Cada linha é um e-mail em uma oferta: cupons gerados, quantos já validados e data do último. Ordenado por quantidade de cupons gerados nessa combinação; os três primeiros em destaque.",
       colEmail: "E-mail",
       colOffer: "Oferta",
       colCoupons: "Cupons",
+      colValidatedInOffer: "Validados",
       colLast: "Último cupom",
+      colDistinctOffers: "Ofertas",
+      colValidatedAtMerchant: "Validados no local",
       noCustomers: "Nenhum cupom ainda.",
       maxCouponsLabel: "Máximo de cupons (QR), opcional",
       maxCouponsPlaceholder: "Ex.: 50 (mínimo 5 se preencher)",
       maxCouponsHint: "Se preencher, ao atingir esse número a oferta fica inativa e some da página pública. Deixe vazio para sem limite.",
+      couponCountSummary:
+        "Esta oferta: já emitidos {issued} cupons, limite {max}, restam {remaining}. Na página pública, quem visita também vê quantos faltam quando há limite.",
       maxCouponsInvalid: "O máximo de cupons deve ser um número inteiro maior ou igual a 5, ou deixe em branco.",
       discountFieldHint: "Aparece na página da oferta e no cupom. Defina ao criar a oferta.",
       discountLockedHint:
@@ -125,20 +141,6 @@ export const translations = {
       profileSaving: "Salvando…",
       profileSaved: "Nome atualizado.",
       profileError: "Não foi possível salvar o nome.",
-      passwordHeading: "Alterar senha",
-      passwordCurrent: "Senha atual",
-      passwordNew: "Nova senha",
-      passwordConfirm: "Confirmar nova senha",
-      changePassword: "Alterar senha",
-      passwordSaving: "Salvando…",
-      passwordChanged: "Senha alterada.",
-      passwordError: "Não foi possível alterar a senha. Confira a senha atual.",
-      passwordMismatch: "As novas senhas não coincidem.",
-      passwordTooShort: "A nova senha deve ter pelo menos 6 caracteres.",
-      passwordDemo:
-        "Com o projeto em modo demo (sem Firebase), a troca de senha não está disponível. Com Firebase ativo, use os campos abaixo. Na tela de login, \"Esqueci minha senha\" envia e-mail de redefinição.",
-      forgotPasswordNote:
-        "Esqueceu a senha? Na tela de login use \"Esqueci minha senha\" — enviamos um link de redefinição (conta com e-mail e senha no Firebase).",
       visibilityHeading: "Esta oferta deve aparecer no site para os clientes?",
       visibilityPublishedTitle: "Sim, publicar",
       visibilityPublishedDesc: "Aparece na página inicial. Os clientes podem ver e gerar cupom.",
@@ -176,24 +178,26 @@ export const translations = {
     howItWorks: {
       title: "Como Funciona",
       description:
-        "O Playas e Ventajas conecta visitantes a ofertas locais com cupom em QR Code. Esta página é pública: serve tanto para quem consome (turista/cliente) quanto para empresas parceiras entenderem o mesmo serviço. Na home, ofertas com limite de cupons podem mostrar quantos restam, atualizando ao vivo.",
+        "O Playas e Ventajas conecta visitantes a ofertas locais com cupom em QR Code. Esta página é pública para qualquer pessoa ler, turista ou empresa.",
       audienceNote: "Você não precisa estar logado para ler esta página.",
-      touristTitle: "Para quem pega o cupom (visitante)",
-      touristSteps: [
-        "Na página inicial, veja as ofertas e use os filtros por tipo (bar, restaurante, etc.) se quiser.",
-        "Em cada oferta, informe seu e-mail para gerar um cupom por promoção (o mesmo e-mail pode ser usado em outras ofertas, mas não vários cupons na mesma oferta).",
-        "Cada cupom vale para uma pessoa nesta promoção (um uso por e-mail). Se forem duas ou mais pessoas, cada uma pode gerar o seu com um e-mail diferente, no respeito às regras do local.",
-        "O sistema mostra um QR Code na tela. Apresente-o no estabelecimento para validar o benefício.",
-        "Respeite a vigência (datas) e as regras escritas na oferta. O cupom que você gerou fica com o valor exibido na oferta naquele momento.",
-        "Leia os Termos e a Política de Privacidade no rodapé: explicam uso do e-mail (LGPD) e contato para dúvidas."
+      touristSectionTitle: "Para quem visita e quer usar o cupom",
+      touristParagraphs: [
+        "Na página inicial você vê as ofertas e pode filtrar por tipo, por exemplo bar, restaurante ou experiência.",
+        "A regra do cupom é simples: em cada oferta, só é permitido um cupom por e-mail. Ou seja, o mesmo e-mail pode pegar cupons em várias ofertas diferentes, uma em cada uma. Mas na mesma oferta não dá para pedir mais de um cupom com o mesmo e-mail.",
+        "Cada cupom vale para uma pessoa naquela promoção. Se forem duas ou mais pessoas, cada uma pode gerar o seu com um e-mail diferente, conforme as regras do local.",
+        "Você informa o e-mail na oferta, o site gera um QR Code na tela e você mostra esse código no estabelecimento para validar o benefício.",
+        "Respeite a data de início e a data de fim da oferta e o texto que estiver na página. O cupom fica com o desconto ou condição que apareciam na oferta no momento em que você gerou.",
+        "Se o parceiro definiu um limite de cupons, a página pode mostrar quantos ainda restam e essa informação atualiza quando outras pessoas pedem cupom.",
+        "No rodapé estão os Termos de Uso e a Política de Privacidade, com explicação sobre o uso do e-mail e como falar com a gente."
       ],
-      merchantTitle: "Para a empresa (parceiro)",
-      merchantSteps: [
-        "Cadastre-se e faça login na área da empresa para criar e editar ofertas (texto, foto, datas, publicar ou pausar).",
-        "No painel você pode alterar o nome do estabelecimento quando quiser. Ao editar uma oferta, não é possível mudar o tipo de promoção (%, 2x1, etc.); você pode ajustar título, descrição, imagem, datas, publicar/pausar e limite de cupons.",
-        "Na área logada você vê quais e-mails geraram cupom **por oferta** (lista para operação e relacionamento), sem substituir obrigações da sua política comercial.",
-        "Use o leitor de QR na área da empresa para marcar o cupom como usado quando o cliente apresentar o código.",
-        "Reclamações sobre o site ou dados pessoais: use o e-mail indicado na Política de Privacidade."
+      merchantSectionTitle: "Para a empresa parceira",
+      merchantParagraphs: [
+        "A área da empresa é onde você se cadastra, entra com login e gerencia suas ofertas. Ali você monta texto, foto, coloca a data de início e a data de fim no formulário, uma ao lado da outra, escolhe se a oferta fica publicada ou pausada e pode colocar um limite opcional de cupons em QR.",
+        "Você pode mudar o nome do estabelecimento quando quiser. Ao editar uma oferta que já existe, não é possível mudar o tipo de promoção, por exemplo se era percentual ou 2 por 1. Você pode mudar título, descrição, imagem, datas, publicar ou pausar e o limite de cupons. Quando há limite, o painel mostra quantos cupons já foram emitidos e quantos faltam. As ofertas aparecem em duas abas: em andamento e arquivo, para as que estão pausadas ou com vigência já encerrada por data.",
+        "Se esquecer a senha, na tela de login use o texto para recuperar senha, informe o e-mail do cadastro e abra o e-mail que chegar. Nesse e-mail há um link. Ao clicar, abre uma página segura fora deste painel onde você digita a nova senha e confirma na mesma tela. Não é dentro do site do Playas e Ventajas que fica essa confirmação, e sim na página que abre pelo link do e-mail.",
+        "Na área logada você vê uma lista de e-mails que pediram cupom em cada oferta, para ajudar na operação no balcão.",
+        "Use o leitor de QR na área da empresa para marcar o cupom como usado quando o cliente mostrar o código.",
+        "Dúvidas sobre o site ou dados pessoais: use o e-mail indicado na Política de Privacidade no rodapé."
       ]
     },
     legal: {
@@ -215,7 +219,7 @@ export const translations = {
         { title: "1. Controlador", text: "O responsável pelo tratamento dos dados pessoais no âmbito deste site é a operação Playas e Ventajas, contato: playasyventajas@gmail.com." },
         { title: "2. Quais dados coletamos", text: "Principalmente: e-mail informado no momento de gerar o cupom; dados do cupom (oferta, código, datas de cadastro e uso); dados de cadastro e login das empresas parceiras (nome, CNPJ, e-mail de empresa, conforme o formulário). Dados de navegação podem incluir logs técnicos do provedor de hospedagem." },
         { title: "3. Finalidades (LGPD)", text: "Tratamos dados para: (i) gerar e exibir o cupom e o QR Code; (ii) permitir que o estabelecimento correspondente valide e registre o uso; (iii) exibir ao parceiro, na área logada, a relação de e-mails e ofertas associadas para operação (base de clientes por oferta); (iv) cumprimento legal e defesa em processo; (v) eventual fila de envio de e-mail quando o recurso estiver ativo. Bases legais: execução de serviço solicitado pelo titular, legítimo interesse, cumprimento de obrigação legal e, quando aplicável, consentimento." },
-        { title: "4. Com quem compartilhamos", text: "Não vendemos listas de e-mail. O e-mail e o vínculo com a oferta podem ser acessados pelo estabelecimento dono daquela oferta no painel da empresa. Prestadores de infraestrutura (ex.: hospedagem Firebase/Google) podem processar dados conforme seus contratos e políticas." },
+        { title: "4. Com quem compartilhamos", text: "Não vendemos listas de e-mail. O e-mail e o vínculo com a oferta podem ser acessados pelo estabelecimento dono daquela oferta no painel da empresa. Provedores de hospedagem e serviços em nuvem podem processar dados conforme contratos e políticas deles." },
         { title: "5. Direitos do titular", text: "Nos termos da LGPD, você pode solicitar confirmação de tratamento, acesso, correção, anonimização, portabilidade, eliminação de dados desnecessários, informação sobre compartilhamentos e revogação de consentimento quando aplicável. Envie o pedido para playasyventajas@gmail.com com identificação razoável." },
         { title: "6. Retenção de dados", text: "Mantemos os dados pelo tempo necessário para operar cupons, validações e obrigações legais. Cupons e registros podem ser mantidos enquanto o serviço existir ou conforme prazo legal." },
         { title: "7. Segurança", text: "Adotamos medidas técnicas e administrativas razoáveis para proteger contra acesso não autorizado. Nenhum sistema é 100% inviolável; use o serviço de forma consciente." },
@@ -225,7 +229,7 @@ export const translations = {
     footer: {
       developedBy: "Desenvolvido por",
       rights: "© 2026 Playas e Ventajas. Todos os direitos reservados.",
-      demoMode: "⚠ Modo Demo: Chaves Firebase não encontradas. Usando dados locais simulados."
+      demoMode: "⚠ Modo demonstração: dados locais de teste."
     }
   },
   en: {
@@ -260,7 +264,11 @@ export const translations = {
       resetError: "Could not send the email. Try again or check the address.",
       resetUserNotFound: "No account found with this email.",
       authError: "Authentication error. Check your credentials.",
-      fillAll: "Please fill all fields."
+      fillAll: "Please fill all fields.",
+      loginSubtitle:
+        "Use the email and password you registered with. If you forgot your password, use the link just below the fields.",
+      resetPasswordDescription:
+        "Enter the email you used to register. We send you a link to set a new password."
     },
     home: {
       title: "Discover the Best",
@@ -289,7 +297,8 @@ export const translations = {
       codeLabel: "Coupon Code:",
       instruction: "Show this QR code to the merchant to redeem.",
       gamificationMsg: "The more coupons you use, the closer you are to exclusive benefits! Always use the same email to accumulate rewards.",
-      emailNotQueuedHint: "Your coupon above is valid. Automatic email could not be queued (network or Firestore rules).",
+      emailNotQueuedHint:
+        "Your coupon above is valid. Automatic email did not work this time. Use the QR on screen or try again later.",
       close: "Close",
       error: "Error generating coupon",
       soldOut: "This offer has no more coupons available or is no longer active.",
@@ -311,7 +320,8 @@ export const translations = {
       statusInactive: "Inactive",
       tabActiveOffers: "Active",
       tabArchivedOffers: "Archive",
-      tabArchivedHint: "Paused or past end date",
+      tabArchivedHint:
+        "Paused or past end date. To show under Active: publish the offer and set the end date to today or later.",
       noArchivedOffers: "No paused or ended offers.",
       noActiveOffers: "No active offers here. Paused or ended offers are in Archive.",
       expandCustomerList: "Show more ({n})",
@@ -330,17 +340,27 @@ export const translations = {
       },
       confirmDelete: "Are you sure you want to delete this offer?",
       uploading: "Uploading image...",
-      customersTitle: "Customer base & top consumers",
+      customersTopTitle: "Ranking by email",
+      customersTopDesc:
+        "One row per email: how many different offers from your business that person has claimed, and how many coupons were validated at your place (scanner or manual code). More distinct offers first; ties broken by more validations; top three highlighted.",
+      expandCustomerTopList: "Show more in ranking ({n})",
+      collapseCustomerTopList: "Show less in ranking",
+      customersTitle: "Detail by email and offer",
       customersDesc:
-        "Emails from people who requested coupons on your offers. Each row shows which offer. Sorted by coupon count; the top three rows are highlighted.",
+        "Each row is one email on one offer: coupons issued, how many validated, and last date. Sorted by coupon count for that pair; top three highlighted.",
       colEmail: "Email",
       colOffer: "Offer",
       colCoupons: "Coupons",
+      colValidatedInOffer: "Validated",
       colLast: "Last coupon",
+      colDistinctOffers: "Offers",
+      colValidatedAtMerchant: "Validated on site",
       noCustomers: "No coupons yet.",
       maxCouponsLabel: "Max coupons (QR), optional",
       maxCouponsPlaceholder: "e.g. 50 (minimum 5 if set)",
       maxCouponsHint: "If set, when the limit is reached the offer becomes inactive and disappears from the public page. Leave empty for no limit.",
+      couponCountSummary:
+        "This offer: {issued} coupons issued so far, limit {max}, {remaining} left. On the public page, visitors also see how many are left when a limit is set.",
       maxCouponsInvalid: "Max coupons must be an integer ≥ 5, or leave blank.",
       discountFieldHint: "Shown on the offer page and on the coupon. Set it when you create the offer.",
       discountLockedHint: "The promotion type (%, 2-for-1, etc.) cannot be changed after the offer is created.",
@@ -351,20 +371,6 @@ export const translations = {
       profileSaving: "Saving…",
       profileSaved: "Name updated.",
       profileError: "Could not save the name.",
-      passwordHeading: "Change password",
-      passwordCurrent: "Current password",
-      passwordNew: "New password",
-      passwordConfirm: "Confirm new password",
-      changePassword: "Change password",
-      passwordSaving: "Saving…",
-      passwordChanged: "Password updated.",
-      passwordError: "Could not change password. Check your current password.",
-      passwordMismatch: "New passwords do not match.",
-      passwordTooShort: "New password must be at least 6 characters.",
-      passwordDemo:
-        "Password change is not available in local demo mode. With Firebase enabled, use the fields below. On the login screen, use \"Forgot password\" to receive a reset email.",
-      forgotPasswordNote:
-        "Forgot your password? On the login screen use \"Forgot password\" — we send a reset link (email/password accounts in Firebase).",
       visibilityHeading: "Should this offer appear on the site for customers?",
       visibilityPublishedTitle: "Yes, publish",
       visibilityPublishedDesc: "Shows on the home page. Customers can view it and get a coupon.",
@@ -402,24 +408,26 @@ export const translations = {
     howItWorks: {
       title: "How It Works",
       description:
-        "Playas e Ventajas connects visitors to local offers using QR coupons. This page is public: both guests and partner businesses can read it to understand the same flow. On the home page, offers with a coupon limit may show how many are left, updating live.",
+        "Playas e Ventajas connects visitors to local offers with QR coupons. This page is public for anyone to read, visitor or business.",
       audienceNote: "You do not need to log in to read this page.",
-      touristTitle: "If you get the coupon (visitor)",
-      touristSteps: [
-        "Browse offers on the home page and use category filters if you like.",
-        "For each offer, enter your email to generate one coupon per promotion (you can use the same email on other offers, but not multiple coupons for the same offer).",
-        "Each coupon is for one person in this promotion (one use per email). Visiting as a couple or group? Each person can generate theirs with a different email, following the venue's rules.",
-        "Show the QR Code on your screen at the venue to redeem the benefit.",
-        "Respect the validity dates and the rules shown on the offer. Your coupon reflects the discount shown when you generated it.",
-        "See Terms and Privacy in the footer for email use (LGPD) and contact details."
+      touristSectionTitle: "If you visit and want the coupon",
+      touristParagraphs: [
+        "On the home page you see offers and can filter by type, for example bar, restaurant, or experience.",
+        "The coupon rule is simple: for each offer, only one coupon per email is allowed. So the same email can get coupons on many different offers, one coupon each. But you cannot request more than one coupon for the same offer with the same email.",
+        "Each coupon is for one person in that promotion. If there are two or more people, each can generate theirs with a different email, following the venue rules.",
+        "You enter your email on the offer page, the site shows a QR code on screen, and you show that code at the venue to redeem the benefit.",
+        "Respect the start and end dates of the offer and the text on the page. The coupon keeps the discount or condition shown on the offer at the moment you generated it.",
+        "If the partner set a coupon limit, the page may show how many are left, and that count updates when others request coupons.",
+        "The footer has Terms of Use and Privacy Policy, with details on email use and how to contact us."
       ],
-      merchantTitle: "For businesses (partner)",
-      merchantSteps: [
-        "Sign up and log in to create and edit offers (copy, photo, dates, publish or pause).",
-        "In the panel you can change the establishment name anytime. When editing an offer, you cannot change the promotion type (%, 2-for-1, etc.); you can adjust title, description, image, dates, publish/pause, and coupon limits.",
-        "In the logged-in area you see which emails claimed coupons per offer (for operations and CRM), without replacing your own commercial obligations.",
-        "Use the QR scanner in the merchant area to mark the coupon as used when the customer presents the code.",
-        "Complaints about the site or personal data: use the email in the Privacy Policy."
+      merchantSectionTitle: "For partner businesses",
+      merchantParagraphs: [
+        "The merchant area is where you register, sign in, and manage your offers. You add copy and photo, set the start date and end date side by side in the form, choose whether the offer is published or paused, and you can set an optional QR coupon limit.",
+        "You can change the establishment name anytime. When you edit an offer that already exists, you cannot change the promotion type, for example percent off or two for one. You can change title, description, image, dates, publish or pause, and the coupon limit. When there is a limit, the dashboard shows how many coupons were issued and how many are left. Offers appear in two tabs: active and archive, for paused offers or offers whose end date has passed.",
+        "If you forgot your password, on the login screen use the recovery text, enter your registered email, and open the email you receive. That email contains a link. When you click it, a secure page opens outside this dashboard where you enter and confirm your new password on that same screen. That confirmation is not inside the Playas e Ventajas site; it is on the page that opens from the email link.",
+        "In the signed in area you see a list of emails that requested coupons for each offer, to help at the counter.",
+        "Use the QR scanner in the merchant area to mark a coupon as used when the customer shows the code.",
+        "Questions about the site or personal data: use the email in the Privacy Policy in the footer."
       ]
     },
     legal: {
@@ -441,7 +449,7 @@ export const translations = {
         { title: "1. Controller", text: "The data controller for this site is the Playas e Ventajas operation, contact: playasyventajas@gmail.com." },
         { title: "2. Data we collect", text: "Mainly: email used to generate a coupon; coupon data (offer, code, creation/use timestamps); partner account data (company name, tax ID, email) as entered in forms. Hosting may generate technical logs." },
         { title: "3. Purposes (LGPD)", text: "We process data to: (i) generate and display the coupon and QR code; (ii) let the corresponding venue validate usage; (iii) show the partner, when logged in, emails linked to each offer for operations; (iv) legal compliance and defense; (v) optional email delivery when enabled. Legal bases: performance of service, legitimate interest, legal obligation, and consent where required." },
-        { title: "4. Sharing", text: "We do not sell email lists. The email and offer link may be accessed by the establishment that owns that offer in the merchant panel. Infrastructure providers (e.g. Firebase/Google) may process data under their terms." },
+        { title: "4. Sharing", text: "We do not sell email lists. The email and offer link may be accessed by the establishment that owns that offer in the merchant panel. Hosting and cloud service providers may process data under their terms." },
         { title: "5. Your rights", text: "Under the LGPD you may request access, correction, deletion, portability, information on sharing, and other rights. Send requests to playasyventajas@gmail.com with reasonable identification." },
         { title: "6. Retention", text: "We keep data as long as needed to operate coupons, validations, and legal duties." },
         { title: "7. Security", text: "We apply reasonable technical and administrative measures. No system is 100% secure." },
@@ -451,7 +459,7 @@ export const translations = {
     footer: {
       developedBy: "Developed by",
       rights: "© 2026 Playas e Ventajas. All rights reserved.",
-      demoMode: "⚠ Demo Mode: Firebase keys not found. Using local mock data."
+      demoMode: "⚠ Demo mode: local test data."
     }
   },
   es: {
@@ -486,7 +494,11 @@ export const translations = {
       resetError: "No se pudo enviar el correo. Inténtalo de nuevo o revisa la dirección.",
       resetUserNotFound: "No encontramos una cuenta con este correo.",
       authError: "Error de autenticación. Verifica tus credenciales.",
-      fillAll: "Por favor completa todos los campos."
+      fillAll: "Por favor completa todos los campos.",
+      loginSubtitle:
+        "Usa el correo y la contraseña del registro. Si olvidaste la contraseña, usa el enlace justo debajo de los campos.",
+      resetPasswordDescription:
+        "Escribe el correo que usaste al registrarte. Recibes un enlace para crear una contraseña nueva."
     },
     home: {
       title: "Descubre las Mejores",
@@ -515,7 +527,8 @@ export const translations = {
       codeLabel: "Código del Cupón:",
       instruction: "Muestra este código QR al comerciante para canjearlo.",
       gamificationMsg: "¡Cuántos más cupones uses, más cerca estarás de beneficios exclusivos! Usa siempre el mismo correo para acumular ventajas.",
-      emailNotQueuedHint: "El cupón de arriba es válido. El envío automático por correo no pudo ponerse en cola (red o reglas de Firestore).",
+      emailNotQueuedHint:
+        "El cupón de arriba es válido. El envío automático por correo no funcionó ahora. Usa el QR en pantalla o inténtalo más tarde.",
       close: "Cerrar",
       error: "Error al generar el cupón",
       soldOut: "Esta oferta agotó los cupones disponibles o ya no está activa.",
@@ -537,7 +550,8 @@ export const translations = {
       statusInactive: "Inactiva",
       tabActiveOffers: "En curso",
       tabArchivedOffers: "Archivo",
-      tabArchivedHint: "Pausadas o con vigencia finalizada",
+      tabArchivedHint:
+        "Pausadas o con fecha de fin ya pasada. Para aparecer en En curso: publica la oferta y pon la fecha fin en el futuro.",
       noArchivedOffers: "No hay ofertas pausadas o finalizadas.",
       noActiveOffers: "No hay ofertas en curso. Las pausadas o finalizadas están en Archivo.",
       expandCustomerList: "Ver más ({n})",
@@ -556,17 +570,27 @@ export const translations = {
       },
       confirmDelete: "¿Estás seguro de que deseas eliminar esta oferta?",
       uploading: "Subiendo imagen...",
-      customersTitle: "Base de clientes y consumidores destacados",
+      customersTopTitle: "Ranking por correo",
+      customersTopDesc:
+        "Una fila por correo: cuántas ofertas distintas de tu negocio pidió cupón esa persona y cuántos cupones ya validaste en el local (lector o código). Primero quien tiene más ofertas distintas; en empate, más validados; los tres primeros destacan.",
+      expandCustomerTopList: "Ver más en el ranking ({n})",
+      collapseCustomerTopList: "Ver menos en el ranking",
+      customersTitle: "Detalle por correo y oferta",
       customersDesc:
-        "Correos de quienes pidieron cupón en tus ofertas. En cada fila se ve la oferta. Orden: más cupones primero; los tres primeros destacan.",
+        "Cada fila es un correo en una oferta: cupones generados, cuántos validados y fecha del último. Orden por cantidad de cupones en esa combinación; los tres primeros destacan.",
       colEmail: "Correo",
       colOffer: "Oferta",
       colCoupons: "Cupones",
+      colValidatedInOffer: "Validados",
       colLast: "Último cupón",
+      colDistinctOffers: "Ofertas",
+      colValidatedAtMerchant: "Validados en el local",
       noCustomers: "Aún no hay cupones.",
       maxCouponsLabel: "Máximo de cupones (QR), opcional",
       maxCouponsPlaceholder: "Ej.: 50 (mínimo 5 si completas)",
       maxCouponsHint: "Si lo completas, al llegar a ese número la oferta queda inactiva y desaparece de la página pública. Vacío = sin límite.",
+      couponCountSummary:
+        "Esta oferta: ya emitidos {issued} cupones, límite {max}, quedan {remaining}. En la página pública, quien visita también ve cuántos quedan si hay límite.",
       maxCouponsInvalid: "El máximo debe ser un entero ≥ 5, o déjalo en blanco.",
       discountFieldHint: "Se muestra en la página de la oferta y en el cupón. Defínelo al crear la oferta.",
       discountLockedHint:
@@ -578,20 +602,6 @@ export const translations = {
       profileSaving: "Guardando…",
       profileSaved: "Nombre actualizado.",
       profileError: "No se pudo guardar el nombre.",
-      passwordHeading: "Cambiar contraseña",
-      passwordCurrent: "Contraseña actual",
-      passwordNew: "Nueva contraseña",
-      passwordConfirm: "Confirmar nueva contraseña",
-      changePassword: "Cambiar contraseña",
-      passwordSaving: "Guardando…",
-      passwordChanged: "Contraseña actualizada.",
-      passwordError: "No se pudo cambiar la contraseña. Revisa la contraseña actual.",
-      passwordMismatch: "Las nuevas contraseñas no coinciden.",
-      passwordTooShort: "La nueva contraseña debe tener al menos 6 caracteres.",
-      passwordDemo:
-        "En modo demo local no hay cambio de contraseña. Con Firebase activo, usa los campos de abajo. En el login, \"Olvidé mi contraseña\" envía un correo de restablecimiento.",
-      forgotPasswordNote:
-        "¿Olvidaste la contraseña? En el inicio de sesión usa \"Olvidé mi contraseña\" — enviamos un enlace (cuentas correo/contraseña en Firebase).",
       visibilityHeading: "¿Esta oferta debe verse en el sitio para los clientes?",
       visibilityPublishedTitle: "Sí, publicar",
       visibilityPublishedDesc: "Aparece en la página principal. Los clientes pueden ver y sacar cupón.",
@@ -629,24 +639,26 @@ export const translations = {
     howItWorks: {
       title: "Cómo Funciona",
       description:
-        "Playas e Ventajas conecta visitantes con ofertas locales mediante cupones en QR. Esta página es pública: tanto visitantes como empresas pueden leerla para entender el mismo flujo. En la página de inicio, las ofertas con límite de cupones pueden mostrar cuántos quedan, actualizándose al momento.",
+        "Playas e Ventajas conecta visitantes con ofertas locales mediante cupones en QR. Esta página es pública para que cualquiera la lea, visitante o empresa.",
       audienceNote: "No necesitas iniciar sesión para leer esta página.",
-      touristTitle: "Si obtienes el cupón (visitante)",
-      touristSteps: [
-        "Mira las ofertas en la página de inicio y usa filtros por categoría si quieres.",
-        "En cada oferta, ingresa tu correo para generar un cupón por promoción (puedes usar el mismo correo en otras ofertas, pero no varios cupones en la misma oferta).",
-        "Cada cupón es para una persona en esta promoción (un uso por correo). ¿Vienes en pareja o grupo? Cada persona puede generar el suyo con un correo distinto, según las reglas del local.",
-        "Muestra el código QR en pantalla en el local para canjear el beneficio.",
-        "Respeta las fechas de vigencia y las reglas mostradas en la oferta. Tu cupón refleja el descuento mostrado al generarlo.",
-        "Consulta Términos y Privacidad en el pie: explican el uso del correo (LGPD) y el contacto."
+      touristSectionTitle: "Si visitas y quieres el cupón",
+      touristParagraphs: [
+        "En la página de inicio ves las ofertas y puedes filtrar por tipo, por ejemplo bar, restaurante o experiencia.",
+        "La regla del cupón es simple: en cada oferta solo se permite un cupón por correo. Es decir, el mismo correo puede sacar cupones en varias ofertas distintas, uno en cada una. Pero en la misma oferta no puedes pedir más de un cupón con el mismo correo.",
+        "Cada cupón es para una persona en esa promoción. Si son dos o más personas, cada una puede generar el suyo con un correo distinto, según las reglas del local.",
+        "Informas el correo en la oferta, el sitio muestra un código QR en pantalla y tú lo muestras en el local para canjear el beneficio.",
+        "Respeta la fecha de inicio y la fecha de fin de la oferta y el texto de la página. El cupón queda con el descuento o condición que aparecían en la oferta cuando lo generaste.",
+        "Si el socio definió un límite de cupones, la página puede mostrar cuántos quedan y esa información se actualiza cuando otras personas piden cupón.",
+        "En el pie están los Términos de Uso y la Política de Privacidad, con explicación del uso del correo y cómo contactarnos."
       ],
-      merchantTitle: "Para la empresa (socio)",
-      merchantSteps: [
-        "Regístrate e inicia sesión para crear y editar ofertas (texto, foto, fechas, publicar o pausar).",
-        "En el panel puedes cambiar el nombre del establecimiento cuando quieras. Al editar una oferta no puedes cambiar el tipo de promoción (%, 2x1, etc.); sí título, descripción, imagen, fechas, publicar/pausar y límite de cupones.",
-        "En el área privada ves qué correos generaron cupón por oferta (operación y relación con clientes), sin sustituir tus obligaciones comerciales.",
-        "Usa el lector QR en el área de empresa para marcar el cupón como usado cuando el cliente lo presente.",
-        "Reclamaciones sobre el sitio o datos personales: usa el correo indicado en la Política de Privacidad."
+      merchantSectionTitle: "Para la empresa socia",
+      merchantParagraphs: [
+        "El área de empresa es donde te registras, inicias sesión y gestionas tus ofertas. Ahí pones texto y foto, indicas la fecha de inicio y la fecha de fin en el formulario, una al lado de la otra, eliges si la oferta queda publicada o pausada y puedes poner un límite opcional de cupones en QR.",
+        "Puedes cambiar el nombre del establecimiento cuando quieras. Al editar una oferta que ya existe, no puedes cambiar el tipo de promoción, por ejemplo porcentaje o 2 por 1. Sí puedes cambiar título, descripción, imagen, fechas, publicar o pausar y el límite de cupones. Cuando hay límite, el panel muestra cuántos cupones ya se emitieron y cuántos quedan. Las ofertas aparecen en dos pestañas: en curso y archivo, para las pausadas o con vigencia ya cerrada por fecha.",
+        "Si olvidaste la contraseña, en la pantalla de inicio de sesión usa el texto para recuperarla, escribe el correo del registro y abre el correo que llega. Ese correo trae un enlace. Al hacer clic, se abre una página segura fuera de este panel donde escribes la contraseña nueva y la confirmas en la misma pantalla. Esa confirmación no está dentro del sitio de Playas e Ventajas, sino en la página que abre el enlace del correo.",
+        "En el área privada ves una lista de correos que pidieron cupón en cada oferta, para ayudar en la operación en el mostrador.",
+        "Usa el lector QR en el área de empresa para marcar el cupón como usado cuando el cliente muestre el código.",
+        "Dudas sobre el sitio o datos personales: usa el correo indicado en la Política de Privacidad en el pie."
       ]
     },
     legal: {
@@ -668,7 +680,7 @@ export const translations = {
         { title: "1. Responsable del tratamiento", text: "El responsable es la operación Playas e Ventajas, contacto: playasyventajas@gmail.com." },
         { title: "2. Datos que recopilamos", text: "Principalmente: correo al generar el cupón; datos del cupón (oferta, código, fechas); datos de registro de empresas (nombre, CNPJ, correo) según el formulario. Puede haber logs técnicos del alojamiento." },
         { title: "3. Finalidades (LGPD)", text: "Tratamos datos para: (i) generar y mostrar el cupón y el QR; (ii) permitir que el establecimiento valide el uso; (iii) mostrar al socio, en sesión iniciada, la relación de correos y ofertas para operación; (iv) cumplimiento legal y defensa; (v) posible envío de correo si la función está activa. Bases: ejecución del servicio, interés legítimo, obligación legal y consentimiento cuando aplique." },
-        { title: "4. Con quién compartimos", text: "No vendemos listas. El correo y el vínculo con la oferta pueden ser accedidos por el establecimiento dueño de esa oferta en el panel. Proveedores de infraestructura (p. ej. Firebase/Google) pueden tratar datos según sus políticas." },
+        { title: "4. Con quién compartimos", text: "No vendemos listas. El correo y el vínculo con la oferta pueden ser accedidos por el establecimiento dueño de esa oferta en el panel. Proveedores de alojamiento y servicios en la nube pueden tratar datos según sus políticas." },
         { title: "5. Derechos del titular", text: "Según la LGPD puedes solicitar acceso, corrección, eliminación, portabilidad, información sobre comparticiones y otros derechos. Envía la solicitud a playasyventajas@gmail.com con identificación razonable." },
         { title: "6. Conservación", text: "Conservamos los datos el tiempo necesario para operar cupones, validaciones y obligaciones legales." },
         { title: "7. Seguridad", text: "Aplicamos medidas razonables. Ningún sistema es 100% invulnerable." },
@@ -678,7 +690,7 @@ export const translations = {
     footer: {
       developedBy: "Desarrollado por",
       rights: "© 2026 Playas e Ventajas. Todos los derechos reservados.",
-      demoMode: "⚠ Modo Demo: Claves de Firebase no encontradas. Usando datos simulados locales."
+      demoMode: "⚠ Modo demostración: datos locales de prueba."
     }
   }
 };

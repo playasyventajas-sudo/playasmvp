@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { FirebaseError } from 'firebase/app';
-import { Offer, Coupon, UserRole, CompanyUser, Category, ConsumerStat } from './types';
-import { getPublicOffers, subscribePublicOffers, getMerchantOffers, getMerchantConsumerStats, createOffer, updateOffer, deleteOffer, generateCoupon, validateCoupon, uploadImage, countCouponsForOffer, COUPON_SOLD_OUT, COUPON_ALREADY_CLAIMED, COUPON_INVALID_EMAIL } from './services/dataService';
+import { Offer, Coupon, UserRole, CompanyUser, Category, ConsumerStat, ConsumerEmailAggregate } from './types';
+import { getPublicOffers, subscribePublicOffers, getMerchantOffers, getMerchantConsumerDashboard, createOffer, updateOffer, deleteOffer, generateCoupon, validateCoupon, uploadImage, countCouponsForOffer, getOfferCouponLimitInfo, COUPON_SOLD_OUT, COUPON_ALREADY_CLAIMED, COUPON_INVALID_EMAIL } from './services/dataService';
 import type { OfferUpdateInput } from './services/dataService';
 import { safeImageUrl } from './utils/safeUrl';
-import { subscribeToAuthChanges, logoutCompany, updateCompanyDisplayName, changeMerchantPassword } from './services/authService';
-import { isFirebaseConfigured } from './services/firebaseConfig';
+import { subscribeToAuthChanges, logoutCompany, updateCompanyDisplayName } from './services/authService';
 import { QRCodeCanvas } from 'qrcode.react';
 import { IconPalm, IconQrCode, IconCamera, IconTrash, IconInfo, IconFileText, IconCheck, IconX } from './components/Icons';
 import { translations, Language } from './src/translations';
@@ -88,18 +87,15 @@ const Navbar = ({ setView, currentView, lang, setLang }: { setView: (v: string) 
 // 2. Offer Card
 const OfferCard: React.FC<{ offer: Offer, onGetCoupon: (o: Offer) => void, lang: Language }> = ({ offer, onGetCoupon, lang }) => {
   const t = translations[lang].offerCard;
-  const max = offer.maxCoupons;
-  const hasLimit = typeof max === "number" && max >= 5;
-  const issued = offer.couponsIssued ?? 0;
-  const remaining = hasLimit ? Math.max(0, max - issued) : null;
-  const pctRemaining = hasLimit && max > 0 ? Math.round((remaining! / max) * 100) : 100;
+  const lim = getOfferCouponLimitInfo(offer);
+  const { hasLimit, max, remaining, pctRemaining } = lim;
 
   return (
-  <div className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 border border-sea-50 flex flex-col h-full">
-    <div className="h-48 overflow-hidden relative flex-shrink-0">
+  <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 border border-sea-50 flex flex-col h-full min-h-0">
+    <div className="h-48 overflow-hidden relative flex-shrink-0 rounded-t-2xl">
       <img src={safeImageUrl(offer.imageUrl) || 'https://picsum.photos/400/300'} alt={offer.title} className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-500" />
     </div>
-    <div className="p-6 flex flex-col flex-grow">
+    <div className="p-6 flex flex-col flex-grow min-h-0">
       <div className="flex justify-between items-start mb-2">
         <h3 className="text-xl font-bold text-gray-900 line-clamp-1">{offer.title}</h3>
       </div>
@@ -113,8 +109,10 @@ const OfferCard: React.FC<{ offer: Offer, onGetCoupon: (o: Offer) => void, lang:
         </div>
       )}
 
+      <p className="text-gray-600 text-sm mb-4 line-clamp-2 shrink-0">{offer.description}</p>
+
       {hasLimit && remaining !== null && (
-        <div className="mb-3 rounded-lg border border-sea-100 bg-sea-50/80 px-3 py-2">
+        <div className="mb-4 rounded-lg border border-sea-100 bg-sea-50/80 px-3 py-2 shrink-0">
           <div className="flex items-center justify-between gap-2 mb-1.5">
             <span className="text-xs font-semibold text-sea-900">
               {t.couponsRemaining
@@ -135,10 +133,8 @@ const OfferCard: React.FC<{ offer: Offer, onGetCoupon: (o: Offer) => void, lang:
           </div>
         </div>
       )}
-
-      <p className="text-gray-600 text-sm mb-4 line-clamp-2 flex-grow">{offer.description}</p>
       
-      <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-50">
+      <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-50 shrink-0">
         <span className="text-xs text-gray-400">{t.validUntil} {offer.validUntil}</span>
         <button 
           onClick={() => onGetCoupon(offer)}
@@ -170,8 +166,11 @@ const CouponModal = ({
   const [mailQueued, setMailQueued] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
   const t = translations[lang].couponModal;
+  const tCard = translations[lang].offerCard;
 
   if (!offer) return null;
+
+  const lim = getOfferCouponLimitInfo(offer);
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -212,6 +211,21 @@ const CouponModal = ({
           <>
             <h3 className="text-2xl font-bold text-gray-900 mb-2">{t.title}</h3>
             <p className="text-gray-500 mb-6">{t.description} <span className="font-semibold text-sea-700">{offer.title}</span>.</p>
+            {lim.hasLimit && lim.remaining !== null && (
+              <div className="mb-4 rounded-lg border border-sea-100 bg-sea-50/90 px-3 py-2">
+                <p className="text-xs font-semibold text-sea-900">
+                  {tCard.couponsRemaining
+                    .replace("{remaining}", String(lim.remaining))
+                    .replace("{total}", String(lim.max))}
+                </p>
+                <div className="mt-2 h-2 bg-white/80 rounded-full overflow-hidden border border-sea-100">
+                  <div
+                    className="h-full bg-gradient-to-r from-sea-500 to-sea-400 rounded-full"
+                    style={{ width: `${lim.pctRemaining}%` }}
+                  />
+                </div>
+              </div>
+            )}
             <form onSubmit={handleGenerate} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t.emailLabel}</label>
@@ -275,6 +289,7 @@ const AdminPanel = ({
 }) => {
   const [offers, setOffers] = useState<Offer[]>([]);
   const [consumers, setConsumers] = useState<ConsumerStat[]>([]);
+  const [emailAggregates, setEmailAggregates] = useState<ConsumerEmailAggregate[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -284,23 +299,20 @@ const AdminPanel = ({
   const [profileName, setProfileName] = useState(user.companyName);
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileMsg, setProfileMsg] = useState<'ok' | 'err' | null>(null);
-  const [pwdCurrent, setPwdCurrent] = useState('');
-  const [pwdNew, setPwdNew] = useState('');
-  const [pwdConfirm, setPwdConfirm] = useState('');
-  const [pwdSaving, setPwdSaving] = useState(false);
-  const [pwdMsg, setPwdMsg] = useState<string | null>(null);
   const [offerTab, setOfferTab] = useState<'active' | 'archived'>('active');
   const [customersExpanded, setCustomersExpanded] = useState(false);
+  const [customersTopExpanded, setCustomersTopExpanded] = useState(false);
   const t = translations[lang].admin;
   const tCats = translations[lang].categories;
 
   const refresh = async () => {
-    const [allOffers, stats] = await Promise.all([
+    const [allOffers, dashboard] = await Promise.all([
       getMerchantOffers(user.uid),
-      getMerchantConsumerStats(user.uid)
+      getMerchantConsumerDashboard(user.uid)
     ]);
     setOffers(allOffers);
-    setConsumers(stats);
+    setConsumers(dashboard.byOffer);
+    setEmailAggregates(dashboard.byEmail);
   };
 
   /** Nome da promoção na lista de clientes: título atual da oferta (offers), não só a cópia gravada no cupom na hora da geração. */
@@ -376,13 +388,10 @@ const AdminPanel = ({
             if (prevIssued >= mc) {
               finalPatch.isActive = false;
             } else {
-              const wasSoldOutAtLimit =
-                prev != null &&
-                prev.maxCoupons != null &&
-                prev.maxCoupons >= 5 &&
-                prevIssued >= prev.maxCoupons;
-              finalPatch.isActive = wasSoldOutAtLimit ? true : (newOffer.isActive ?? true);
+              finalPatch.isActive = newOffer.isActive !== false;
             }
+          } else {
+            finalPatch.isActive = newOffer.isActive !== false;
           }
           await updateOffer(editingId, finalPatch);
         }
@@ -472,6 +481,11 @@ const AdminPanel = ({
     : consumers.slice(0, CUSTOMER_LIST_PREVIEW);
   const customerExtraCount = Math.max(0, consumers.length - CUSTOMER_LIST_PREVIEW);
 
+  const visibleTopAggregates = customersTopExpanded
+    ? emailAggregates
+    : emailAggregates.slice(0, CUSTOMER_LIST_PREVIEW);
+  const customerTopExtraCount = Math.max(0, emailAggregates.length - CUSTOMER_LIST_PREVIEW);
+
   const handleSaveProfile = async () => {
     const trimmed = profileName.trim();
     if (!trimmed || trimmed === user.companyName) return;
@@ -487,31 +501,6 @@ const AdminPanel = ({
       setProfileMsg('err');
     } finally {
       setProfileSaving(false);
-    }
-  };
-
-  const handlePasswordChange = async () => {
-    setPwdMsg(null);
-    if (pwdNew.length < 6) {
-      setPwdMsg(t.passwordTooShort);
-      return;
-    }
-    if (pwdNew !== pwdConfirm) {
-      setPwdMsg(t.passwordMismatch);
-      return;
-    }
-    setPwdSaving(true);
-    try {
-      await changeMerchantPassword(pwdCurrent, pwdNew);
-      setPwdMsg(t.passwordChanged);
-      setPwdCurrent('');
-      setPwdNew('');
-      setPwdConfirm('');
-    } catch (e) {
-      console.error(e);
-      setPwdMsg(t.passwordError);
-    } finally {
-      setPwdSaving(false);
     }
   };
 
@@ -564,57 +553,6 @@ const AdminPanel = ({
         </div>
         {profileMsg === 'ok' && <p className="text-sm text-green-700 mt-2">{t.profileSaved}</p>}
         {profileMsg === 'err' && <p className="text-sm text-red-600 mt-2">{t.profileError}</p>}
-
-        <p className="text-xs text-gray-500 mt-6 border-t border-gray-100 pt-4">{t.forgotPasswordNote}</p>
-
-        {isFirebaseConfigured() ? (
-          <div className="mt-4">
-            <h4 className="text-sm font-semibold text-gray-800 mb-3">{t.passwordHeading}</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl">
-              <input
-                type="password"
-                autoComplete="current-password"
-                className="border p-2 rounded sm:col-span-2"
-                placeholder={t.passwordCurrent}
-                value={pwdCurrent}
-                onChange={(e) => setPwdCurrent(e.target.value)}
-              />
-              <input
-                type="password"
-                autoComplete="new-password"
-                className="border p-2 rounded"
-                placeholder={t.passwordNew}
-                value={pwdNew}
-                onChange={(e) => setPwdNew(e.target.value)}
-              />
-              <input
-                type="password"
-                autoComplete="new-password"
-                className="border p-2 rounded"
-                placeholder={t.passwordConfirm}
-                value={pwdConfirm}
-                onChange={(e) => setPwdConfirm(e.target.value)}
-              />
-            </div>
-            <button
-              type="button"
-              disabled={pwdSaving || !pwdCurrent || !pwdNew || !pwdConfirm}
-              onClick={handlePasswordChange}
-              className="mt-3 px-4 py-2 rounded-lg bg-gray-800 text-white text-sm font-medium hover:bg-gray-900 disabled:opacity-40"
-            >
-              {pwdSaving ? t.passwordSaving : t.changePassword}
-            </button>
-            {pwdMsg && (
-              <p
-                className={`text-sm mt-2 ${pwdMsg === t.passwordChanged ? 'text-green-700' : 'text-red-600'}`}
-              >
-                {pwdMsg}
-              </p>
-            )}
-          </div>
-        ) : (
-          <p className="text-xs text-amber-900 bg-amber-50 border border-amber-100 rounded-lg p-3 mt-4">{t.passwordDemo}</p>
-        )}
       </div>
 
       {isAdding && (
@@ -678,9 +616,34 @@ const AdminPanel = ({
               </span>
             </div>
             
-            <div className="flex flex-col">
+            <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex flex-col">
+                <label className="text-xs text-gray-500 mb-1 ml-1">{t.placeholders.validFrom}</label>
+                <input
+                  type="date"
+                  required
+                  className="border p-2 rounded w-full"
+                  value={newOffer.validFrom || ''}
+                  max={newOffer.validUntil || undefined}
+                  onChange={(e) => setNewOffer({ ...newOffer, validFrom: e.target.value })}
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className="text-xs text-gray-500 mb-1 ml-1">{t.placeholders.validUntil}</label>
+                <input
+                  type="date"
+                  required
+                  className="border p-2 rounded w-full"
+                  value={newOffer.validUntil || ''}
+                  min={newOffer.validFrom || undefined}
+                  onChange={(e) => setNewOffer({ ...newOffer, validUntil: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col md:col-span-2">
               <label className="text-xs text-gray-500 mb-1 ml-1">{t.placeholders.uploadImage}</label>
-              <input type="file" accept="image/*" onChange={handleImageUpload} className="border p-2 rounded text-sm" />
+              <input type="file" accept="image/*" onChange={handleImageUpload} className="border p-2 rounded text-sm max-w-lg" />
               {isUploading && <span className="text-xs text-sea-600 animate-pulse mt-1">{t.uploading}</span>}
               {newOffer.imageUrl && !isUploading && (
                 <div className="mt-2 relative w-20 h-20">
@@ -688,30 +651,6 @@ const AdminPanel = ({
                   <button type="button" onClick={() => setNewOffer(prev => ({...prev, imageUrl: ''}))} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow">×</button>
                 </div>
               )}
-            </div>
-            
-            <div className="flex flex-col">
-              <label className="text-xs text-gray-500 mb-1 ml-1">{t.placeholders.validFrom}</label>
-              <input
-                type="date"
-                required
-                className="border p-2 rounded"
-                value={newOffer.validFrom || ''}
-                max={newOffer.validUntil || undefined}
-                onChange={(e) => setNewOffer({ ...newOffer, validFrom: e.target.value })}
-              />
-            </div>
-            
-            <div className="flex flex-col">
-              <label className="text-xs text-gray-500 mb-1 ml-1">{t.placeholders.validUntil}</label>
-              <input
-                type="date"
-                required
-                className="border p-2 rounded"
-                value={newOffer.validUntil || ''}
-                min={newOffer.validFrom || undefined}
-                onChange={(e) => setNewOffer({ ...newOffer, validUntil: e.target.value })}
-              />
             </div>
 
             <div className="flex flex-col md:col-span-2">
@@ -730,6 +669,21 @@ const AdminPanel = ({
                 }}
               />
               <p className="text-xs text-gray-400 mt-1">{t.maxCouponsHint}</p>
+              {editingId &&
+                typeof newOffer.maxCoupons === 'number' &&
+                newOffer.maxCoupons >= 5 && (
+                  <p className="text-sm text-sea-900 font-medium mt-2 p-3 rounded-lg bg-sea-50 border border-sea-100">
+                    {t.couponCountSummary
+                      .replace('{issued}', String(newOffer.couponsIssued ?? 0))
+                      .replace('{max}', String(newOffer.maxCoupons))
+                      .replace(
+                        '{remaining}',
+                        String(
+                          Math.max(0, newOffer.maxCoupons - (newOffer.couponsIssued ?? 0))
+                        )
+                      )}
+                  </p>
+                )}
             </div>
 
             <div className="md:col-span-2">
@@ -851,6 +805,60 @@ const AdminPanel = ({
 
       <div className="mt-10 bg-white rounded-xl shadow overflow-hidden border border-sea-100">
         <div className="px-6 py-4 bg-sea-50 border-b border-sea-100">
+          <h3 className="text-lg font-bold text-sea-900">{t.customersTopTitle}</h3>
+          {t.customersTopDesc?.trim() ? (
+            <p className="text-sm text-gray-600 mt-1">{t.customersTopDesc}</p>
+          ) : null}
+        </div>
+        {emailAggregates.length === 0 ? (
+          <p className="p-6 text-gray-500 text-sm">{t.noCustomers}</p>
+        ) : (
+          <>
+            <div className="overflow-x-auto max-h-[min(70vh,520px)] overflow-y-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t.colEmail}</th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">{t.colDistinctOffers}</th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">{t.colValidatedAtMerchant}</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t.colLast}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {visibleTopAggregates.map((row, i) => (
+                    <tr key={row.email} className={i < 3 ? 'bg-sand-50/80' : ''}>
+                      <td className="px-6 py-3 text-sm text-gray-900 font-medium">{row.email}</td>
+                      <td className="px-6 py-3 text-sm text-center text-sea-700 font-bold">{row.distinctOfferCount}</td>
+                      <td className="px-6 py-3 text-sm text-center text-sea-700 font-bold">{row.validatedCouponCount}</td>
+                      <td className="px-6 py-3 text-sm text-gray-600">
+                        {row.lastCouponAt
+                          ? new Date(row.lastCouponAt).toLocaleString(lang === 'pt' ? 'pt-BR' : lang === 'es' ? 'es-ES' : 'en-US')
+                          : '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {emailAggregates.length > CUSTOMER_LIST_PREVIEW && (
+              <div className="px-4 py-3 border-t border-sea-100 bg-sea-50/40 flex justify-center sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => setCustomersTopExpanded((v) => !v)}
+                  className="text-sm font-semibold text-sea-700 hover:text-sea-900 underline underline-offset-2 decoration-sea-300"
+                >
+                  {customersTopExpanded
+                    ? t.collapseCustomerTopList
+                    : t.expandCustomerTopList.replace('{n}', String(customerTopExtraCount))}
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      <div className="mt-10 bg-white rounded-xl shadow overflow-hidden border border-sea-100">
+        <div className="px-6 py-4 bg-sea-50 border-b border-sea-100">
           <h3 className="text-lg font-bold text-sea-900">{t.customersTitle}</h3>
           {t.customersDesc?.trim() ? (
             <p className="text-sm text-gray-600 mt-1">{t.customersDesc}</p>
@@ -867,6 +875,7 @@ const AdminPanel = ({
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t.colEmail}</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t.colOffer}</th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">{t.colCoupons}</th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">{t.colValidatedInOffer}</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t.colLast}</th>
                   </tr>
                 </thead>
@@ -876,6 +885,7 @@ const AdminPanel = ({
                       <td className="px-6 py-3 text-sm text-gray-900 font-medium">{row.email}</td>
                       <td className="px-6 py-3 text-sm text-gray-800">{displayOfferTitleForStat(row)}</td>
                       <td className="px-6 py-3 text-sm text-center text-sea-700 font-bold">{row.couponCount}</td>
+                      <td className="px-6 py-3 text-sm text-center text-sea-700 font-bold">{row.validatedCount}</td>
                       <td className="px-6 py-3 text-sm text-gray-600">
                         {row.lastCouponAt
                           ? new Date(row.lastCouponAt).toLocaleString(lang === 'pt' ? 'pt-BR' : lang === 'es' ? 'es-ES' : 'en-US')
@@ -1065,49 +1075,21 @@ const MerchantPanel = ({ lang, merchantUid }: { lang: Language; merchantUid: str
 const HowItWorks = ({ lang }: { lang: Language }) => {
   const t = translations[lang].howItWorks;
   return (
-  <div className="max-w-4xl mx-auto p-6 space-y-12 animate-fadeIn">
-    <div className="text-center">
-      <h2 className="text-3xl font-bold text-sea-900 mb-4">{t.title}</h2>
-      <p className="text-gray-600 max-w-2xl mx-auto">
-        {t.description}
-      </p>
-      <p className="text-sm text-sea-800/90 max-w-2xl mx-auto mt-3 font-medium">
-        {t.audienceNote}
-      </p>
-    </div>
+  <article className="max-w-3xl mx-auto px-4 py-8 md:py-12 animate-fadeIn text-gray-800">
+    <h1 className="text-3xl md:text-4xl font-bold text-sea-900 mb-4">{t.title}</h1>
+    <p className="text-base md:text-lg leading-relaxed text-gray-700 mb-3">{t.description}</p>
+    <p className="text-sm text-sea-900 font-medium mb-10">{t.audienceNote}</p>
 
-    <div className="grid md:grid-cols-2 gap-8">
-      <div className="bg-white p-8 rounded-2xl shadow-lg border border-sea-50 hover:shadow-xl transition-shadow">
-        <div className="w-16 h-16 bg-sea-100 rounded-full flex items-center justify-center text-sea-600 mb-6 mx-auto">
-          <IconPalm className="w-8 h-8" />
-        </div>
-        <h3 className="text-xl font-bold text-gray-900 mb-4 text-center">{t.touristTitle}</h3>
-        <ul className="space-y-4">
-          {t.touristSteps.map((step, index) => (
-            <li key={index} className="flex gap-3 items-start">
-              <span className="flex-shrink-0 w-6 h-6 bg-sea-500 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">{index + 1}</span>
-              <span className="text-gray-600">{step}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
+    <h2 className="text-xl md:text-2xl font-bold text-sea-900 mb-4">{t.touristSectionTitle}</h2>
+    {t.touristParagraphs.map((p, i) => (
+      <p key={i} className="mb-4 text-base leading-relaxed text-gray-700">{p}</p>
+    ))}
 
-      <div className="bg-white p-8 rounded-2xl shadow-lg border border-sea-50 hover:shadow-xl transition-shadow">
-        <div className="w-16 h-16 bg-sand-100 rounded-full flex items-center justify-center text-sand-600 mb-6 mx-auto">
-          <IconCamera className="w-8 h-8" />
-        </div>
-        <h3 className="text-xl font-bold text-gray-900 mb-4 text-center">{t.merchantTitle}</h3>
-        <ul className="space-y-4">
-          {t.merchantSteps.map((step, index) => (
-            <li key={index} className="flex gap-3 items-start">
-              <span className="flex-shrink-0 w-6 h-6 bg-sand-500 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">{index + 1}</span>
-              <span className="text-gray-600">{step}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  </div>
+    <h2 className="text-xl md:text-2xl font-bold text-sea-900 mt-10 mb-4">{t.merchantSectionTitle}</h2>
+    {t.merchantParagraphs.map((p, i) => (
+      <p key={i} className="mb-4 text-base leading-relaxed text-gray-700">{p}</p>
+    ))}
+  </article>
   );
 };
 

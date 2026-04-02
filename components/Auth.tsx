@@ -36,8 +36,9 @@ export const LoginPanel = ({ lang, onLogin }: AuthProps) => {
 
   return (
     <div className="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-xl animate-fadeIn">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">{t.loginTitle}</h2>
-      
+      <h2 className="text-2xl font-bold text-gray-900 mb-2 text-center">{t.loginTitle}</h2>
+      <p className="text-sm text-gray-600 text-center mb-6">{t.loginSubtitle}</p>
+
       {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm">{error}</div>}
 
       <form onSubmit={handleLogin} className="space-y-4">
@@ -223,8 +224,9 @@ const ForgotPasswordModal = ({ lang, onClose }: { lang: Language, onClose: () =>
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl max-w-md w-full p-8 shadow-2xl relative animate-fadeIn">
         <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">✕</button>
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">{t.resetPassword}</h2>
-        
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">{t.resetPassword}</h2>
+        <p className="text-sm text-gray-600 mb-4">{t.resetPasswordDescription}</p>
+
         {sent ? (
           <div className="text-center">
             <p className="text-green-600 mb-4">{t.resetSent}</p>

@@ -45,7 +45,25 @@ export interface ConsumerStat {
   offerId: string;
   offerTitle: string;
   couponCount: number;
+  /** Cupons com status USED (validados no estabelecimento) neste par e-mail + oferta */
+  validatedCount: number;
   lastCouponAt: number;
+}
+
+/** Agregado por e-mail (todas as ofertas do comerciante) para ranking no painel */
+export interface ConsumerEmailAggregate {
+  email: string;
+  /** Quantas ofertas distintas da empresa geraram ao menos um cupom para este e-mail */
+  distinctOfferCount: number;
+  /** Total de cupons validados (USED) deste e-mail nas ofertas deste comerciante */
+  validatedCouponCount: number;
+  lastCouponAt: number;
+}
+
+/** Base de clientes: detalhe por oferta + ranking por e-mail */
+export interface MerchantConsumerDashboard {
+  byOffer: ConsumerStat[];
+  byEmail: ConsumerEmailAggregate[];
 }
 
 export interface CompanyUser {

@@ -3,10 +3,7 @@ import {
   signInWithEmailAndPassword,
   signOut,
   sendPasswordResetEmail,
-  onAuthStateChanged,
-  EmailAuthProvider,
-  reauthenticateWithCredential,
-  updatePassword
+  onAuthStateChanged
 } from "firebase/auth";
 import {
   doc,
@@ -144,21 +141,6 @@ export const updateCompanyDisplayName = async (
     }
   }
   if (n > 0) await batch.commit();
-};
-
-/** Troca senha do usuário logado (e-mail/senha). Esqueci minha senha usa `resetPassword`. */
-export const changeMerchantPassword = async (
-  currentPassword: string,
-  newPassword: string
-): Promise<void> => {
-  if (!isFirebaseConfigured()) {
-    throw new Error("DEMO_NO_PASSWORD_CHANGE");
-  }
-  const u = auth.currentUser;
-  if (!u?.email) throw new Error("no user");
-  const cred = EmailAuthProvider.credential(u.email, currentPassword);
-  await reauthenticateWithCredential(u, cred);
-  await updatePassword(u, newPassword);
 };
 
 export const resetPassword = async (email: string) => {

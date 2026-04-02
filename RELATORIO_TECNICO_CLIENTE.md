@@ -98,7 +98,7 @@ Observacao: as ofertas foram intencionalmente criadas para validacao do MVP.
 - Validacao consulta cupom e marca status como `USED`. Opcionalmente rejeita se `merchantUid` do cupom nao for o do comerciante logado (cupom de outro estabelecimento).
 
 ### Base de clientes / top consumidores
-- Agregacao no cliente a partir de `coupons` com `where('merchantUid', '==', uid)`: agrupa por e-mail, conta cupons, ordena e exibe no painel (ate 50 linhas). Destaque visual para os 3 primeiros.
+- Uma leitura de `coupons` com `where('merchantUid', '==', uid)` alimenta dois blocos no painel (ate 50 linhas cada): (1) **ranking por e-mail**: ofertas distintas com cupom gerado, total de cupons com `status == USED` (validados no scanner ou codigo manual), ordenacao por mais ofertas distintas e desempate por mais validados; (2) **detalhe por e-mail e oferta**: contagens por par, incluindo quantos `USED` naquela oferta. Destaque visual para os 3 primeiros em cada tabela.
 
 ### Limite opcional de cupons por oferta (QR), 2026-04-01
 - **Painel:** campo opcional **maximo de cupons (QR)**; se preenchido, valor inteiro **minimo 5**; vazio = sem limite.
