@@ -1,0 +1,61 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /offers/{offerId} {
+      // Público: só ofertas ativas. Dono: lê todas as suas (ativas ou não).
+      allow read: if resource.data.isActive == true
+        || (request.auth != null && resource.data.ownerUid == request.auth.uid);
+      allow create: if request.auth != null
+        && request.resource.data.ownerUid == request.auth.uid
+        && (!request.resource.data.keys().hasAny(['maxCoupons'])
+            || (request.resource.data.maxCoupons is int
+                && request.resource.data.maxCoupons >= 5
+                && request.resource.data.couponsIssued == 0));
+      allow update: if (request.auth != null && resource.data.ownerUid == request.auth.uid)
+        || (request.auth == null
+            && resource.data.keys().hasAny(['maxCoupons'])
+            && resource.data.maxCoupons is int
+            && resource.data.maxCoupons >= 5
+            && (resource.data.keys().hasAny(['couponsIssued'])
+                ? resource.data.couponsIssued
+                : 0) < resource.data.maxCoupons
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['couponsIssued', 'isActive'])
+            && request.resource.data.couponsIssued
+                == (resource.data.keys().hasAny(['couponsIssued'])
+                    ? resource.data.couponsIssued
+                    : 0) + 1
+            && request.resource.data.maxCoupons == resource.data.maxCoupons
+            && request.resource.data.ownerUid == resource.data.ownerUid
+            && request.resource.data.isActive
+                == (request.resource.data.couponsIssued < request.resource.data.maxCoupons));
+      allow delete: if request.auth != null
+        && resource.data.ownerUid == request.auth.uid;
+    }
+    match /coupons/{couponId} {
+      allow create: if request.resource.data.keys().hasAll(
+          ['offerId','offerTitle','discount','userEmail','createdAt','status','merchantUid'])
+        && request.resource.data.status == 'VALID'
+        && request.resource.data.userEmail is string
+        && request.resource.data.offerId is string
+        && request.resource.data.createdAt is number
+        && request.resource.data.merchantUid is string;
+      allow read: if request.auth != null;
+      allow update: if request.auth != null
+        && resource.data.status == 'VALID'
+        && request.resource.data.status == 'USED';
+    }
+    match /companies/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    // Fila de e-mail (extensão "Trigger Email" do Firebase lê com privilégio de serviço)
+    match /mail/{mailId} {
+      allow create: if request.resource.data.keys().hasAll(['to', 'message'])
+        && request.resource.data.to is list
+        && request.resource.data.message is map
+        && request.resource.data.message.keys().hasAll(['subject', 'html'])
+        && request.resource.data.message.subject is string
+        && request.resource.data.message.html is string;
+      allow read, update, delete: if false;
+    }
+  }
+}

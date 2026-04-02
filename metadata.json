@@ -1,0 +1,7 @@
+{
+  "name": "Playas e Ventajas",
+  "description": "Exclusive offers and coupons for tourists. QR Code generation and validation system.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

@@ -1,0 +1,25 @@
+Estou com o projeto "Playas e Ventajas", um PWA em React/Vite/TypeScript para descontos em praias.
+
+O projeto já possui:
+1. Front-end completo com Tailwind CSS.
+2. Sistema de Ofertas (CRUD) com upload de imagem, categorias e status ativo/inativo.
+3. Sistema de Cupons (Geração de QR Code e Validação).
+4. Arquitetura preparada para Firebase (Auth, Firestore, Storage) com fallback para dados locais (Mock) se as chaves não existirem.
+
+O código principal está em `App.tsx`, `services/dataService.ts` e `services/firebaseConfig.ts`.
+
+**Minha necessidade agora:**
+Quero fazer o deploy no Firebase Hosting e ativar o banco de dados real.
+
+Por favor:
+1. Analise o arquivo `firebaseConfig.ts` e me diga quais variáveis de ambiente preciso criar no meu arquivo `.env.local`.
+2. Verifique se as regras de segurança do Firestore (firestore.rules) e Storage (storage.rules) precisam ser criadas ou configuradas.
+3. Me guie no processo de build (`npm run build`) e deploy (`firebase deploy`).
+4. (Opcional) Se eu quiser criar uma Cloud Function para enviar o QR Code por e-mail quando o usuário gera o cupom, me dê o código dessa função baseada na estrutura de dados atual (`coupons` collection).
+
+O banco de dados deve armazenar:
+- Usuários (Empresas)
+- Ofertas (com campo `isActive`, `categories`, `imageUrl`)
+- Cupons (com `status`, `userEmail`)
+
+Não altere a lógica de UI atual, apenas me ajude com a infraestrutura e conexão final.
