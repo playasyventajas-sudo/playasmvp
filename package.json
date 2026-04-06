@@ -13,7 +13,8 @@
     "cleanup:firestore": "node scripts/firestore-delete-non-owner.mjs",
     "cleanup:qa": "node scripts/delete-qa-test-data.mjs",
     "cleanup:qa:login": "node scripts/delete-qa-with-firebase-user-token.mjs",
-    "backfill:isactive": "node scripts/backfill-offers-isactive.mjs"
+    "backfill:isactive": "node scripts/backfill-offers-isactive.mjs",
+    "recompute:isactive": "node scripts/recompute-offers-isactive.mjs"
   },
   "dependencies": {
     "firebase": "^12.8.0",

@@ -185,11 +185,8 @@ const CouponModal = ({
   const [mailQueued, setMailQueued] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
   const t = translations[lang].couponModal;
-  const tCard = translations[lang].offerCard;
 
   if (!offer) return null;
-
-  const lim = getOfferCouponLimitInfo(offer);
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -231,21 +228,6 @@ const CouponModal = ({
           <>
             <h3 className="text-2xl font-bold text-gray-900 mb-2">{t.title}</h3>
             <p className="text-gray-500 mb-6">{t.description} <span className="font-semibold text-sea-700">{offer.title}</span>.</p>
-            {lim.hasLimit && lim.remaining !== null && (
-              <div className="mb-4 rounded-lg border border-sea-100 bg-sea-50/90 px-3 py-2">
-                <p className="text-xs font-semibold text-sea-900">
-                  {tCard.couponsRemaining
-                    .replace("{remaining}", String(lim.remaining))
-                    .replace("{total}", String(lim.max))}
-                </p>
-                <div className="mt-2 h-2 bg-white/80 rounded-full overflow-hidden border border-sea-100">
-                  <div
-                    className="h-full bg-gradient-to-r from-sea-500 to-sea-400 rounded-full"
-                    style={{ width: `${lim.pctRemaining}%` }}
-                  />
-                </div>
-              </div>
-            )}
             <form onSubmit={handleGenerate} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t.emailLabel}</label>
@@ -271,8 +253,21 @@ const CouponModal = ({
           </>
         ) : (
           <div className="text-center py-4">
-            <div className="bg-green-100 text-green-800 px-4 py-2 rounded-full inline-block text-sm font-bold mb-6">
+            <div className="bg-green-100 text-green-800 px-4 py-2 rounded-full inline-block text-sm font-bold mb-4">
               {t.successTitle}
+            </div>
+            <div
+              role="alert"
+              className="mb-4 overflow-hidden rounded-lg border border-red-600 shadow-sm"
+            >
+              <p className="bg-red-50 px-2.5 py-2 text-left text-xs font-medium leading-snug text-red-950 sm:text-sm">
+                {t.qrSaveWarningLead}
+              </p>
+              <div className="bg-red-600 px-2 py-1.5 sm:py-2">
+                <p className="text-center text-xs font-bold uppercase leading-tight tracking-wide text-white sm:text-sm">
+                  {t.qrSaveWarningEmphasis}
+                </p>
+              </div>
             </div>
             <div className="flex justify-center mb-6">
               <div className="p-4 bg-white border-4 border-sea-100 rounded-xl shadow-inner">

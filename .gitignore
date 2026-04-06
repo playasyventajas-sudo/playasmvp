@@ -18,6 +18,15 @@ serviceAccountKey.json
 # Cursor / IDE local
 .cursor/
 
+# Cache Firebase CLI (não versionar)
+.firebase/
+
+# Documentação interna / guias (não subir ao remoto público)
+GUIA_SIMPLES_CLIENTE.md
+RELATORIO_TECNICO_CLIENTE.md
+README_DEPLOY.md
+README_DOSSIE.md
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
