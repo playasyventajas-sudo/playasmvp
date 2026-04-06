@@ -30,6 +30,8 @@ import {
   OFFER_DISCOUNT_MAX,
   OFFER_TITLE_MAX
 } from "../src/offerLimits";
+import { clipOfferI18nFields, offerDiscount, offerTitle } from "../src/offerI18n";
+import type { Language } from "../src/translations";
 
 // --- Mock Data for Demo (fallback) ---
 const MOCK_OWNER_UID = "mock-user-123";
@@ -412,8 +414,10 @@ export const createOffer = async (
     couponsIssued: 0,
     maxCoupons: hasLimit ? maxRaw : undefined
   });
+  const i18n = clipOfferI18nFields(rest);
   const restClipped = {
     ...rest,
+    ...i18n,
     validFrom: vfCanon || undefined,
     validUntil: vuCanon,
     title: clipString((rest.title ?? "").trim(), OFFER_TITLE_MAX),
@@ -452,7 +456,13 @@ const OFFER_UPDATE_ALLOWED: (keyof Offer)[] = [
   "validUntil",
   "maxCoupons",
   "publishIntent",
-  "couponsIssued"
+  "couponsIssued",
+  "titleEn",
+  "titleEs",
+  "descriptionEn",
+  "descriptionEs",
+  "discountEn",
+  "discountEs"
 ];
 
 function pickAllowedOfferPatch(patch: Partial<Offer>): Partial<Offer> {
@@ -582,19 +592,22 @@ function escapeHtml(s: string): string {
 async function queueCouponEmail(
   to: string,
   offer: Offer,
-  couponId: string
+  couponId: string,
+  lang: Language = "pt"
 ): Promise<boolean> {
   if (!isFirebaseConfigured()) return false;
   const siteUrl =
     typeof window !== "undefined" && window.location?.origin
       ? window.location.origin
       : "https://playasyventajas.com";
-  const subject = `[Playas e Ventajas] Seu cupom - ${offer.title}`;
+  const tit = offerTitle(offer, lang);
+  const disc = offerDiscount(offer, lang);
+  const subject = `[Playas e Ventajas] Seu cupom - ${tit}`;
   const html = `
     <p>Olá,</p>
     <p>Seu cupom foi gerado com sucesso.</p>
-    <p><strong>Oferta:</strong> ${escapeHtml(offer.title)}<br/>
-    <strong>Desconto:</strong> ${escapeHtml(offer.discount)}<br/>
+    <p><strong>Oferta:</strong> ${escapeHtml(tit)}<br/>
+    <strong>Desconto:</strong> ${escapeHtml(disc)}<br/>
     <strong>Código do cupom:</strong> <code>${escapeHtml(couponId)}</code></p>
     <p>Apresente o QR Code no estabelecimento ou informe o código acima.</p>
     <p><a href="${siteUrl}">${escapeHtml(siteUrl)}</a></p>
@@ -759,7 +772,8 @@ export const getMerchantConsumerStats = async (
 
 export const generateCoupon = async (
   offer: Offer,
-  email: string
+  email: string,
+  lang: Language = "pt"
 ): Promise<{ coupon: Coupon; mailQueued: boolean }> => {
   const norm = normalizeCouponEmail(email);
   if (!norm) {
@@ -769,15 +783,16 @@ export const generateCoupon = async (
   assertOfferDatesAllowCoupon(offer);
 
   const merchantUid = offer.ownerUid?.trim() || "";
-  const newCouponData: Omit<Coupon, "id"> = {
-    offerId: offer.id,
-    offerTitle: offer.title,
-    discount: offer.discount,
+  const couponPayloadBase = (od: Offer): Omit<Coupon, "id"> => ({
+    offerId: od.id,
+    offerTitle: offerTitle(od, lang),
+    discount: offerDiscount(od, lang),
     userEmail: norm,
     createdAt: Date.now(),
     status: "VALID",
     merchantUid
-  };
+  });
+  const newCouponData: Omit<Coupon, "id"> = couponPayloadBase(offer);
 
   const maxClient = coerceNumberField(offer.maxCoupons as unknown);
   const hasLimit = maxClient != null && maxClient >= 5;
@@ -810,20 +825,25 @@ export const generateCoupon = async (
         const newIssued = issued + 1;
         const mergedAfter = { ...odNorm, couponsIssued: newIssued };
         const stillActive = computePersistedIsActiveFromOffer(mergedAfter);
+        const payload = couponPayloadBase(odNorm);
         const couponRef = doc(collection(db, "coupons"));
         transaction.set(lockRef, {
           offerId: offer.id,
           email: norm,
           createdAt: Date.now()
         });
-        transaction.set(couponRef, newCouponData);
+        transaction.set(couponRef, payload);
         transaction.update(offerRef, {
           couponsIssued: newIssued,
           isActive: stillActive
         });
-        return { id: couponRef.id, ...newCouponData };
+        return { id: couponRef.id, ...payload };
       });
-      const mailQueued = await queueCouponEmail(norm, offer, coupon.id);
+      const snapMail = await getDoc(doc(db, "offers", offer.id));
+      const odMail = snapMail.exists()
+        ? normalizeOfferFromFirestore(offer.id, snapMail.data() as Record<string, unknown>)
+        : offer;
+      const mailQueued = await queueCouponEmail(norm, odMail, coupon.id, lang);
       return { coupon, mailQueued };
     }
     const coupon = await runTransaction(db, async (transaction) => {
@@ -831,16 +851,31 @@ export const generateCoupon = async (
       if (lockSnap.exists()) {
         throw new Error(COUPON_ALREADY_CLAIMED);
       }
+      const offerRef = doc(db, "offers", offer.id);
+      const offerSnap = await transaction.get(offerRef);
+      if (!offerSnap.exists()) {
+        throw new Error(COUPON_SOLD_OUT);
+      }
+      const odNorm = normalizeOfferFromFirestore(offer.id, offerSnap.data() as Record<string, unknown>);
+      assertOfferDatesAllowCoupon(odNorm);
+      if (!odNorm.isActive) {
+        throw new Error(COUPON_SOLD_OUT);
+      }
+      const payload = couponPayloadBase(odNorm);
       const couponRef = doc(collection(db, "coupons"));
       transaction.set(lockRef, {
         offerId: offer.id,
         email: norm,
         createdAt: Date.now()
       });
-      transaction.set(couponRef, newCouponData);
-      return { id: couponRef.id, ...newCouponData };
+      transaction.set(couponRef, payload);
+      return { id: couponRef.id, ...payload };
     });
-    const mailQueued = await queueCouponEmail(norm, offer, coupon.id);
+    const snapMail2 = await getDoc(doc(db, "offers", offer.id));
+    const odMail2 = snapMail2.exists()
+      ? normalizeOfferFromFirestore(offer.id, snapMail2.data() as Record<string, unknown>)
+      : offer;
+    const mailQueued = await queueCouponEmail(norm, odMail2, coupon.id, lang);
     return { coupon, mailQueued };
   }
 

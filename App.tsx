@@ -6,7 +6,7 @@ import type { OfferUpdateInput } from './services/dataService';
 import { safeImageUrl } from './utils/safeUrl';
 import { subscribeToAuthChanges, logoutCompany, updateCompanyDisplayName } from './services/authService';
 import { QRCodeCanvas } from 'qrcode.react';
-import { IconPalm, IconQrCode, IconCamera, IconTrash, IconInfo, IconFileText } from './components/Icons';
+import { IconPalm, IconQrCode, IconCamera, IconMenu, IconTrash, IconInfo, IconFileText } from './components/Icons';
 import { translations, Language } from './src/translations';
 import {
   clipString,
@@ -23,6 +23,7 @@ import {
   clipPriceReaisDigits,
   formatDiscountForDisplay
 } from './src/offerPromo';
+import { clipOfferI18nFields, offerDescription, offerDiscount, offerTitle } from './src/offerI18n';
 import { LoginPanel } from './components/Auth';
 import { isFirebaseConfigured } from './services/firebaseConfig';
 import jsQR from 'jsqr';
@@ -51,11 +52,13 @@ function isOfferArchived(offer: Offer): boolean {
 // 1. Navbar
 const Navbar = ({ setView, currentView, lang, setLang }: { setView: (v: string) => void, currentView: string, lang: Language, setLang: (l: Language) => void }) => {
   const t = translations[lang].nav;
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
-  <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md shadow-sm border-b border-sea-100">
+  <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md shadow-sm border-b border-sea-100 relative">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="flex justify-between h-16 items-center">
-        <div className="flex items-center cursor-pointer" onClick={() => setView('home')}>
+        <div className="flex items-center cursor-pointer" onClick={() => { setView('home'); setMobileMenuOpen(false); }}>
           <div className="p-2 bg-sea-500 rounded-lg text-white mr-2">
             <IconPalm />
           </div>
@@ -84,21 +87,65 @@ const Navbar = ({ setView, currentView, lang, setLang }: { setView: (v: string) 
             </div>
           </div>
         </div>
-        {/* Mobile Menu Button - Simplified */}
-        <div className="md:hidden flex space-x-4 items-center">
-           <select 
-             value={lang} 
-             onChange={(e) => setLang(e.target.value as Language)}
-             className="text-sm border border-gray-200 rounded p-1 mr-2 bg-transparent"
-           >
-             <option value="pt">PT</option>
-             <option value="en">EN</option>
-             <option value="es">ES</option>
-           </select>
-           <button onClick={() => setView('merchant')} className="p-2 text-gray-500"><IconCamera /></button>
+        <div className="md:hidden flex items-center">
+          <button
+            type="button"
+            aria-expanded={mobileMenuOpen}
+            aria-label="Menu"
+            onClick={() => setMobileMenuOpen((o) => !o)}
+            className="p-2 rounded-lg text-gray-700 hover:bg-sea-50 hover:text-sea-700"
+          >
+            <IconMenu />
+          </button>
         </div>
       </div>
     </div>
+    {mobileMenuOpen && (
+      <>
+        <div
+          className="fixed top-16 left-0 right-0 bottom-0 z-40 bg-black/40 md:hidden"
+          aria-hidden
+          onClick={() => setMobileMenuOpen(false)}
+        />
+        <div className="absolute top-full left-0 right-0 z-50 md:hidden border-b border-sea-100 bg-white shadow-lg">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-col gap-0.5">
+            <button
+              type="button"
+              onClick={() => { setView('home'); setMobileMenuOpen(false); }}
+              className={`text-left py-2.5 px-2 rounded-lg text-base ${currentView === 'home' ? 'text-sea-600 font-semibold bg-sea-50' : 'text-gray-700 hover:bg-gray-50'}`}
+            >
+              {t.offers}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setView('how-it-works'); setMobileMenuOpen(false); }}
+              className={`text-left py-2.5 px-2 rounded-lg text-base ${currentView === 'how-it-works' ? 'text-sea-600 font-semibold bg-sea-50' : 'text-gray-700 hover:bg-gray-50'}`}
+            >
+              {t.howItWorks}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setView('merchant'); setMobileMenuOpen(false); }}
+              className={`text-left py-2.5 px-2 rounded-lg text-base ${currentView === 'merchant' ? 'text-sea-600 font-semibold bg-sea-50' : 'text-gray-700 hover:bg-gray-50'}`}
+            >
+              {t.merchant}
+            </button>
+            <div className="border-t border-gray-100 mt-2 pt-3 flex flex-wrap gap-2">
+              {(['pt', 'en', 'es'] as Language[]).map((l) => (
+                <button
+                  key={l}
+                  type="button"
+                  onClick={() => { setLang(l); setMobileMenuOpen(false); }}
+                  className={`px-3 py-1.5 rounded-md text-sm border ${lang === l ? 'border-sea-600 bg-sea-50 font-bold text-sea-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                >
+                  {l.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </>
+    )}
   </nav>
   );
 };
@@ -108,27 +155,30 @@ const OfferCard: React.FC<{ offer: Offer, onGetCoupon: (o: Offer) => void, lang:
   const t = translations[lang].offerCard;
   const lim = getOfferCouponLimitInfo(offer);
   const { hasLimit, max, remaining, pctRemaining } = lim;
+  const titleUi = offerTitle(offer, lang);
+  const descUi = offerDescription(offer, lang);
+  const discUi = offerDiscount(offer, lang);
 
   return (
   <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 border border-sea-50 flex flex-col h-full min-h-0">
     <div className="h-48 overflow-hidden relative flex-shrink-0 rounded-t-2xl">
-      <img src={safeImageUrl(offer.imageUrl) || 'https://picsum.photos/400/300'} alt={offer.title} className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-500" />
+      <img src={safeImageUrl(offer.imageUrl) || 'https://picsum.photos/400/300'} alt={titleUi} className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-500" />
     </div>
     <div className="p-6 flex flex-col flex-grow min-h-0">
       <div className="flex justify-between items-start mb-2">
-        <h3 className="text-xl font-bold text-gray-900 line-clamp-1">{offer.title}</h3>
+        <h3 className="text-xl font-bold text-gray-900 line-clamp-1">{titleUi}</h3>
       </div>
       <p className="text-sm text-sea-600 font-medium mb-2">{offer.merchantName}</p>
       
-      {offer.discount && (
+      {discUi && (
         <div className="mb-3">
           <span className="bg-sand-100 text-sand-700 text-xs font-bold px-2 py-1 rounded-md uppercase tracking-wide">
-            {formatDiscountForDisplay(offer.discount)}
+            {formatDiscountForDisplay(discUi)}
           </span>
         </div>
       )}
 
-      <p className="text-gray-600 text-sm mb-4 line-clamp-2 shrink-0">{offer.description}</p>
+      <p className="text-gray-600 text-sm mb-4 line-clamp-2 shrink-0">{descUi}</p>
 
       {hasLimit && remaining !== null && (
         <div className="mb-4 rounded-lg border border-sea-100 bg-sea-50/80 px-3 py-2 shrink-0">
@@ -192,7 +242,7 @@ const CouponModal = ({
     e.preventDefault();
     setLoading(true);
     try {
-      const result = await generateCoupon(offer, email);
+      const result = await generateCoupon(offer, email, lang);
       setCoupon(result.coupon);
       setMailQueued(result.mailQueued);
       onCouponGenerated?.();
@@ -227,7 +277,7 @@ const CouponModal = ({
         {!coupon ? (
           <>
             <h3 className="text-2xl font-bold text-gray-900 mb-2">{t.title}</h3>
-            <p className="text-gray-500 mb-6">{t.description} <span className="font-semibold text-sea-700">{offer.title}</span>.</p>
+            <p className="text-gray-500 mb-6">{t.description} <span className="font-semibold text-sea-700">{offerTitle(offer, lang)}</span>.</p>
             <form onSubmit={handleGenerate} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t.emailLabel}</label>
@@ -309,7 +359,20 @@ const AdminPanel = ({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [newOffer, setNewOffer] = useState<Partial<Offer>>({
-    title: '', description: '', discount: '', validFrom: '', validUntil: '', imageUrl: '', publishIntent: true, categories: []
+    title: '',
+    description: '',
+    discount: '',
+    titleEn: '',
+    titleEs: '',
+    descriptionEn: '',
+    descriptionEs: '',
+    discountEn: '',
+    discountEs: '',
+    validFrom: '',
+    validUntil: '',
+    imageUrl: '',
+    publishIntent: true,
+    categories: []
   });
   const [promoKind, setPromoKind] = useState<PromoKind>('percent');
   const [promoPercent, setPromoPercent] = useState('');
@@ -338,7 +401,7 @@ const AdminPanel = ({
   /** Nome da promoção na lista de clientes: título atual da oferta (offers), não só a cópia gravada no cupom na hora da geração. */
   const displayOfferTitleForStat = (row: ConsumerStat) => {
     const live = offers.find((o) => o.id === row.offerId);
-    if (live?.title?.trim()) return live.title.trim();
+    if (live) return offerTitle(live, lang) || row.offerTitle?.trim() || row.offerId || '-';
     return row.offerTitle?.trim() || row.offerId || '-';
   };
 
@@ -410,6 +473,8 @@ const AdminPanel = ({
     offerData.merchantName = user.companyName;
     offerData.publishIntent = newOffer.publishIntent !== false;
 
+    const i18n = clipOfferI18nFields(newOffer);
+
     try {
       if (editingId) {
         const prev = offers.find((o) => o.id === editingId);
@@ -424,7 +489,8 @@ const AdminPanel = ({
             validFrom: vf,
             validUntil: vu,
             removeCouponLimit: true,
-            publishIntent: wantPublished
+            publishIntent: wantPublished,
+            ...i18n
           } as OfferUpdateInput);
         } else if (!hadLimit && hasLimitNow) {
           const cnt = await countCouponsForOffer(editingId);
@@ -433,13 +499,15 @@ const AdminPanel = ({
             validUntil: vu,
             maxCoupons: mc,
             syncCouponsIssued: cnt,
-            publishIntent: wantPublished
+            publishIntent: wantPublished,
+            ...i18n
           } as OfferUpdateInput);
         } else {
           const patch: OfferUpdateInput = {
             validFrom: vf,
             validUntil: vu,
-            publishIntent: wantPublished
+            publishIntent: wantPublished,
+            ...i18n
           };
           if (hasLimitNow && mc != null) {
             patch.maxCoupons = mc;
@@ -452,7 +520,22 @@ const AdminPanel = ({
       setIsAdding(false);
       setEditingId(null);
       resetPromoFields();
-      setNewOffer({ title: '', description: '', discount: '', validFrom: '', validUntil: '', imageUrl: '', publishIntent: true, categories: [] });
+      setNewOffer({
+        title: '',
+        description: '',
+        discount: '',
+        titleEn: '',
+        titleEs: '',
+        descriptionEn: '',
+        descriptionEs: '',
+        discountEn: '',
+        discountEs: '',
+        validFrom: '',
+        validUntil: '',
+        imageUrl: '',
+        publishIntent: true,
+        categories: []
+      });
       refresh();
     } catch (err) {
       console.error(err);
@@ -521,7 +604,22 @@ const AdminPanel = ({
     setIsAdding(false);
     setEditingId(null);
     resetPromoFields();
-    setNewOffer({ title: '', description: '', discount: '', validFrom: '', validUntil: '', imageUrl: '', publishIntent: true, categories: [] });
+    setNewOffer({
+      title: '',
+      description: '',
+      discount: '',
+      titleEn: '',
+      titleEs: '',
+      descriptionEn: '',
+      descriptionEs: '',
+      discountEn: '',
+      discountEs: '',
+      validFrom: '',
+      validUntil: '',
+      imageUrl: '',
+      publishIntent: true,
+      categories: []
+    });
   };
 
   const categoriesList: Category[] = ['bar', 'restaurant', 'experience', 'lodging', 'other'];
@@ -581,6 +679,12 @@ const AdminPanel = ({
                 title: '',
                 description: '',
                 discount: '',
+                titleEn: '',
+                titleEs: '',
+                descriptionEn: '',
+                descriptionEs: '',
+                discountEn: '',
+                discountEs: '',
                 validFrom: '',
                 validUntil: '',
                 imageUrl: '',
@@ -962,6 +1066,133 @@ const AdminPanel = ({
                   .replace('{max}', String(OFFER_DESCRIPTION_MAX))}
               </span>
             </div>
+
+            <fieldset className="md:col-span-2 rounded-xl border border-dashed border-gray-200 bg-gray-50/50 p-4 space-y-3">
+              <legend className="text-sm font-semibold text-gray-800 px-1">{t.offerI18nHeading}</legend>
+              <p className="text-xs text-gray-500">{t.offerI18nHint}</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-600 mb-1">{t.offerTitleEnLabel}</label>
+                  <input
+                    type="text"
+                    className="border p-2 rounded w-full"
+                    maxLength={OFFER_TITLE_MAX}
+                    value={newOffer.titleEn ?? ''}
+                    onChange={(e) =>
+                      setNewOffer({
+                        ...newOffer,
+                        titleEn: clipString(e.target.value, OFFER_TITLE_MAX)
+                      })
+                    }
+                  />
+                  <span className="text-xs text-gray-400 mt-1">
+                    {t.charCounter
+                      .replace('{used}', String([...(newOffer.titleEn || '')].length))
+                      .replace('{max}', String(OFFER_TITLE_MAX))}
+                  </span>
+                </div>
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-600 mb-1">{t.offerTitleEsLabel}</label>
+                  <input
+                    type="text"
+                    className="border p-2 rounded w-full"
+                    maxLength={OFFER_TITLE_MAX}
+                    value={newOffer.titleEs ?? ''}
+                    onChange={(e) =>
+                      setNewOffer({
+                        ...newOffer,
+                        titleEs: clipString(e.target.value, OFFER_TITLE_MAX)
+                      })
+                    }
+                  />
+                  <span className="text-xs text-gray-400 mt-1">
+                    {t.charCounter
+                      .replace('{used}', String([...(newOffer.titleEs || '')].length))
+                      .replace('{max}', String(OFFER_TITLE_MAX))}
+                  </span>
+                </div>
+                <div className="flex flex-col md:col-span-2">
+                  <label className="text-xs text-gray-600 mb-1">{t.offerDescEnLabel}</label>
+                  <textarea
+                    className="border p-2 rounded w-full"
+                    rows={3}
+                    maxLength={OFFER_DESCRIPTION_MAX}
+                    value={newOffer.descriptionEn ?? ''}
+                    onChange={(e) =>
+                      setNewOffer({
+                        ...newOffer,
+                        descriptionEn: clipString(e.target.value, OFFER_DESCRIPTION_MAX)
+                      })
+                    }
+                  />
+                  <span className="text-xs text-gray-400 mt-1">
+                    {t.charCounter
+                      .replace('{used}', String([...(newOffer.descriptionEn || '')].length))
+                      .replace('{max}', String(OFFER_DESCRIPTION_MAX))}
+                  </span>
+                </div>
+                <div className="flex flex-col md:col-span-2">
+                  <label className="text-xs text-gray-600 mb-1">{t.offerDescEsLabel}</label>
+                  <textarea
+                    className="border p-2 rounded w-full"
+                    rows={3}
+                    maxLength={OFFER_DESCRIPTION_MAX}
+                    value={newOffer.descriptionEs ?? ''}
+                    onChange={(e) =>
+                      setNewOffer({
+                        ...newOffer,
+                        descriptionEs: clipString(e.target.value, OFFER_DESCRIPTION_MAX)
+                      })
+                    }
+                  />
+                  <span className="text-xs text-gray-400 mt-1">
+                    {t.charCounter
+                      .replace('{used}', String([...(newOffer.descriptionEs || '')].length))
+                      .replace('{max}', String(OFFER_DESCRIPTION_MAX))}
+                  </span>
+                </div>
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-600 mb-1">{t.offerDiscountEnLabel}</label>
+                  <input
+                    type="text"
+                    className="border p-2 rounded w-full"
+                    maxLength={OFFER_DISCOUNT_MAX}
+                    value={newOffer.discountEn ?? ''}
+                    onChange={(e) =>
+                      setNewOffer({
+                        ...newOffer,
+                        discountEn: clipString(e.target.value, OFFER_DISCOUNT_MAX)
+                      })
+                    }
+                  />
+                  <span className="text-xs text-gray-400 mt-1">
+                    {t.charCounter
+                      .replace('{used}', String([...(newOffer.discountEn || '')].length))
+                      .replace('{max}', String(OFFER_DISCOUNT_MAX))}
+                  </span>
+                </div>
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-600 mb-1">{t.offerDiscountEsLabel}</label>
+                  <input
+                    type="text"
+                    className="border p-2 rounded w-full"
+                    maxLength={OFFER_DISCOUNT_MAX}
+                    value={newOffer.discountEs ?? ''}
+                    onChange={(e) =>
+                      setNewOffer({
+                        ...newOffer,
+                        discountEs: clipString(e.target.value, OFFER_DISCOUNT_MAX)
+                      })
+                    }
+                  />
+                  <span className="text-xs text-gray-400 mt-1">
+                    {t.charCounter
+                      .replace('{used}', String([...(newOffer.discountEs || '')].length))
+                      .replace('{max}', String(OFFER_DISCOUNT_MAX))}
+                  </span>
+                </div>
+              </div>
+            </fieldset>
           </div>
           <button type="submit" disabled={isUploading} className={`mt-4 px-6 py-2 rounded-lg font-bold text-white ${isUploading ? 'bg-gray-400 cursor-not-allowed' : 'bg-sand-500 hover:bg-sand-400'}`}>{t.save}</button>
         </form>
@@ -1030,8 +1261,8 @@ const AdminPanel = ({
                     <div className="flex items-center">
                       <img src={safeImageUrl(offer.imageUrl) || 'https://picsum.photos/40/40'} alt="" className="w-10 h-10 rounded-full mr-3 object-cover bg-gray-100" />
                       <div>
-                        <div className="text-sm font-medium text-gray-900">{offer.title}</div>
-                        <div className="text-sm text-gray-500">{formatDiscountForDisplay(offer.discount)}</div>
+                        <div className="text-sm font-medium text-gray-900">{offerTitle(offer, lang)}</div>
+                        <div className="text-sm text-gray-500">{formatDiscountForDisplay(offerDiscount(offer, lang))}</div>
                       </div>
                     </div>
                   </td>

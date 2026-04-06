@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "deploy:playas": "npm run build && firebase deploy --only firestore:rules,storage,hosting --project playas-e-ventajas",
+    "deploy:push": "bash scripts/deploy-and-push.sh",
     "seed:qa": "node scripts/seed-qa-demo.mjs",
     "update:qa-images": "node scripts/update-qa-offer-images.mjs",
     "cleanup:firestore": "node scripts/firestore-delete-non-owner.mjs",

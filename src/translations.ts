@@ -113,6 +113,15 @@ export const translations = {
         isActive: "Oferta Ativa",
         categories: "Categorias"
       },
+      offerI18nHeading: "Traduções (opcional)",
+      offerI18nHint:
+        "Preencha para exibir título, descrição e texto da promoção em inglês e espanhol na vitrine. Se vazio, o site usa o português.",
+      offerTitleEnLabel: "Título — English",
+      offerTitleEsLabel: "Título — Español",
+      offerDescEnLabel: "Descrição — English",
+      offerDescEsLabel: "Descrição — Español",
+      offerDiscountEnLabel: "Promoção — English",
+      offerDiscountEsLabel: "Promoção — Español",
       confirmDelete: "Tem certeza que deseja excluir esta oferta?",
       uploading: "Enviando imagem...",
       customersTopTitle: "Ranking por e-mail",
@@ -380,6 +389,15 @@ export const translations = {
         isActive: "Active Offer",
         categories: "Categories"
       },
+      offerI18nHeading: "Translations (optional)",
+      offerI18nHint:
+        "Fill in for title, description, and promotion text in English and Spanish on the public site. If empty, Portuguese is used.",
+      offerTitleEnLabel: "Title — English",
+      offerTitleEsLabel: "Title — Español",
+      offerDescEnLabel: "Description — English",
+      offerDescEsLabel: "Description — Español",
+      offerDiscountEnLabel: "Promotion — English",
+      offerDiscountEsLabel: "Promotion — Español",
       confirmDelete: "Are you sure you want to delete this offer?",
       uploading: "Uploading image...",
       customersTopTitle: "Ranking by email",
@@ -644,6 +662,15 @@ export const translations = {
         isActive: "Oferta Activa",
         categories: "Categorías"
       },
+      offerI18nHeading: "Traducciones (opcional)",
+      offerI18nHint:
+        "Complete título, descripción y texto de promoción en inglés y español en la vitrina. Si está vacío, se usa el portugués.",
+      offerTitleEnLabel: "Título — English",
+      offerTitleEsLabel: "Título — Español",
+      offerDescEnLabel: "Descripción — English",
+      offerDescEsLabel: "Descripción — Español",
+      offerDiscountEnLabel: "Promoción — English",
+      offerDiscountEsLabel: "Promoción — Español",
       confirmDelete: "¿Estás seguro de que deseas eliminar esta oferta?",
       uploading: "Subiendo imagen...",
       customersTopTitle: "Ranking por correo",

@@ -12,6 +12,13 @@ export interface Offer {
   id: string;
   title: string;
   description: string;
+  /** Traduções opcionais; se vazio, a UI usa `title` / `description` / `discount` (PT). */
+  titleEn?: string;
+  titleEs?: string;
+  descriptionEn?: string;
+  descriptionEs?: string;
+  discountEn?: string;
+  discountEs?: string;
   imageUrl: string;
   validFrom?: string;
   validUntil: string;
