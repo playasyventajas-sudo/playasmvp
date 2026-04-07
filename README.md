@@ -117,6 +117,27 @@ Deploy exige **Firebase CLI** (`npm i -g firebase-tools`) e permissão no projet
 
 ---
 
+## Playbook de diagnóstico (rápido)
+
+Use quando algo falhar em produção ou após editar ofertas no Console.
+
+1. **`permission-denied` ao gerar cupom**  
+   - No **Firestore** → documento `offers/{id}`: confira `maxCoupons` e `couponsIssued` (tipo e valor). Devem ser números coerentes; se estiverem como texto estranho ou inconsistentes, alinhe no Console ou rode `npm run recompute:isactive` (ajusta `isActive` conforme regra do app).  
+   - No **navegador** (F12 → Console): anote o código completo do `FirebaseError` (ex.: `permission-denied` na coleção `offers`, `coupons` ou `couponLocks`).
+
+2. **Cupom “já reivindicado” sem ter usado**  
+   - É esperado se o **mesmo e-mail** (após normalização em minúsculas) já gerou cupom nessa oferta. Teste com **outro e-mail** ou outra oferta.  
+   - Se suspeitar de lock órfão: em `couponLocks`, existe documento cujo id corresponde à oferta + e-mail (dedupe atômico).
+
+3. **Oferta errada na vitrine** (some cedo, não some quando esgotou, contador estranho)  
+   - Rode `npm run recompute:isactive` para alinhar `isActive` no Firestore com vigência + limite de cupons.  
+   - Confira no doc: `validUntil`, `validFrom`, `publishIntent`, `maxCoupons`, `couponsIssued`.
+
+4. **Deploy**  
+   - Após mudar regras ou front que afete visitantes: `npm run deploy:playas` na raiz do repositório.
+
+---
+
 ## Segurança
 
 - Não commitar `.env.local`, secrets ou `serviceAccountKey.json`.
