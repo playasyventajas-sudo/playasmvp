@@ -1569,6 +1569,11 @@ const App = () => {
   const t = translations[lang];
   const tCats = translations[lang].categories;
 
+  /** Trocar PT/EN/ES não deve manter filtro de categoria “escondido” (ex.: só Bar) e sumir com ofertas de outras categorias. */
+  useEffect(() => {
+    setSelectedCategories([]);
+  }, [lang]);
+
   useEffect(() => {
     let cancelled = false;
     const markReady = () => {

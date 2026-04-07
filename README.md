@@ -77,6 +77,7 @@ Deploy exige **Firebase CLI** (`npm i -g firebase-tools`) e permissão no projet
 
 ### Vitrine pública (home)
 
+- **Filtro de categoria** (Bar, Restaurante, etc.): ao **mudar o idioma** (PT/EN/ES), o app **zera** o filtro e volta para **“Todos”**, para não parecer que ofertas “sumiram” só por categoria ativa.
 - **`validUntil`**: ofertas com fim de vigência já passado não aparecem (data local `YYYY-MM-DD`).
 - **`validFrom` futuro**: se a oferta começa amanhã, **só entra na lista no dia de início** (inclusive). O painel do comerciante continua enxergando a oferta como ativa até lá; cupom segue bloqueado até a data (`generateCoupon`).
 - **Limite de cupons esgotado** e **pausa** (`publishIntent`): o filtro da home usa a mesma regra que o app usa para o estado efetivo (`computePersistedIsActiveFromOffer`), para não exibir card se os dados indicam esgotado/fora de vigência mesmo quando o campo `isActive` no Firestore estiver defasado. Ao emitir o último cupom, a transação grava `isActive: false`. Para alinhar documentos antigos: `npm run recompute:isactive`.
