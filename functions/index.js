@@ -78,8 +78,7 @@ function computePersistedIsActive({
       : String(validUntil ?? "").trim().slice(0, 10));
   if (!vuRaw || !/^\d{4}-\d{2}-\d{2}$/.test(vuRaw)) return false;
   if (vuRaw < nowYmd) return false;
-  const vf = validFrom ? toCanonicalYmd(validFrom) ?? validFrom : undefined;
-  if (vf && vf > nowYmd) return false;
+  // Mesma regra que dataService: vigência futura não zera isActive na listagem.
   const mc = maxCoupons;
   const issued = couponsIssued ?? 0;
   const hasLimit = mc != null && mc >= 5;

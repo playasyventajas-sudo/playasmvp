@@ -91,8 +91,8 @@ export function computePersistedIsActive(args: {
       : String(args.validUntil ?? "").trim().slice(0, 10));
   if (!vuRaw || !/^\d{4}-\d{2}-\d{2}$/.test(vuRaw)) return false;
   if (vuRaw < args.nowYmd) return false;
-  const vf = args.validFrom ? (toCanonicalYmd(args.validFrom) ?? args.validFrom) : undefined;
-  if (vf && vf > args.nowYmd) return false;
+  // validFrom no futuro NÃO desliga isActive: a oferta segue na vitrine e na query pública;
+  // generateCoupon / assertOfferDatesAllowCoupon impedem cupom até a data de início.
   const mc = args.maxCoupons;
   const issued = args.couponsIssued ?? 0;
   const hasLimit = mc != null && mc >= 5;

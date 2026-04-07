@@ -166,8 +166,7 @@ function computePersistedIsActive(args) {
     (typeof args.validUntil === "string" ? args.validUntil.trim().slice(0, 10) : String(args.validUntil ?? "").trim().slice(0, 10));
   if (!vuRaw || !/^\d{4}-\d{2}-\d{2}$/.test(vuRaw)) return false;
   if (vuRaw < args.nowYmd) return false;
-  const vf = args.validFrom ? toCanonicalYmd(args.validFrom) ?? args.validFrom : undefined;
-  if (vf && vf > args.nowYmd) return false;
+  // Alinhado ao app: validFrom futuro não força isActive false.
   const mc = args.maxCoupons;
   const issued = args.couponsIssued ?? 0;
   const hasLimit = mc != null && mc >= 5;
