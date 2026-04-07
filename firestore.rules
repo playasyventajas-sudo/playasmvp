@@ -1,6 +1,25 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // SDK / Console / import às vezes gravam inteiros como float (ex. 5.0). `is int` sozinho nega o update anônimo.
+    function isWholeNumber(n) {
+      return n is int || (n is float && int(n) == n);
+    }
+    function toWholeOrNeg1(n) {
+      return n is int ? n : (n is float && int(n) == n ? int(n) : -1);
+    }
+    function offerMaxCouponsWhole(data) {
+      return data.keys().hasAny(['maxCoupons']) && isWholeNumber(data.maxCoupons) && data.maxCoupons >= 5
+        ? toWholeOrNeg1(data.maxCoupons)
+        : -1;
+    }
+    function offerIssuedWhole(data) {
+      return data.keys().hasAny(['couponsIssued']) && isWholeNumber(data.couponsIssued)
+        ? toWholeOrNeg1(data.couponsIssued)
+        : 0;
+    }
+
     match /offers/{offerId} {
       // Público: isActive boolean true, string "true" (Console/legado), ou sem campo (legado).
       // Com isActive == false, anônimo não lê. Dono lê todas as suas.
@@ -12,26 +31,20 @@ service cloud.firestore {
       allow create: if request.auth != null
         && request.resource.data.ownerUid == request.auth.uid
         && (!request.resource.data.keys().hasAny(['maxCoupons'])
-            || (request.resource.data.maxCoupons is int
+            || (isWholeNumber(request.resource.data.maxCoupons)
                 && request.resource.data.maxCoupons >= 5
                 && request.resource.data.couponsIssued == 0));
       allow update: if (request.auth != null && resource.data.ownerUid == request.auth.uid)
         || (request.auth == null
-            && resource.data.keys().hasAny(['maxCoupons'])
-            && resource.data.maxCoupons is int
-            && resource.data.maxCoupons >= 5
-            && (resource.data.keys().hasAny(['couponsIssued'])
-                ? resource.data.couponsIssued
-                : 0) < resource.data.maxCoupons
+            && offerMaxCouponsWhole(resource.data) >= 5
+            && offerIssuedWhole(resource.data) < offerMaxCouponsWhole(resource.data)
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['couponsIssued', 'isActive'])
-            && request.resource.data.couponsIssued
-                == (resource.data.keys().hasAny(['couponsIssued'])
-                    ? resource.data.couponsIssued
-                    : 0) + 1
-            && request.resource.data.maxCoupons == resource.data.maxCoupons
+            && isWholeNumber(request.resource.data.couponsIssued)
+            && toWholeOrNeg1(request.resource.data.couponsIssued) == offerIssuedWhole(resource.data) + 1
+            && isWholeNumber(request.resource.data.maxCoupons)
+            && toWholeOrNeg1(request.resource.data.maxCoupons) == offerMaxCouponsWhole(resource.data)
             && request.resource.data.ownerUid == resource.data.ownerUid
-            // isActive efetivo pode ser false com cupons restantes (vigência/pausa); ou false quando esgotado.
-            && (request.resource.data.isActive == (request.resource.data.couponsIssued < request.resource.data.maxCoupons)
+            && (request.resource.data.isActive == (toWholeOrNeg1(request.resource.data.couponsIssued) < offerMaxCouponsWhole(resource.data))
                 || request.resource.data.isActive == false));
       allow delete: if request.auth != null
         && resource.data.ownerUid == request.auth.uid;
