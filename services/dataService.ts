@@ -1,13 +1,13 @@
-import {
+import { 
   Timestamp,
-  collection,
-  getDocs,
+  collection, 
+  getDocs, 
   getDoc,
-  addDoc,
-  deleteDoc,
-  doc,
-  updateDoc,
-  query,
+  addDoc, 
+  deleteDoc, 
+  doc, 
+  updateDoc, 
+  query, 
   where,
   runTransaction,
   deleteField,
@@ -153,7 +153,7 @@ function coerceNumberField(v: unknown): number | undefined {
   if (v == null) return undefined;
   if (typeof v === "number" && Number.isFinite(v)) return Math.trunc(v);
   if (typeof v === "string" && v.trim() !== "") {
-    const n = parseInt(v, 10);
+    const n = parseInt(v.trim(), 10);
     if (!Number.isNaN(n)) return n;
   }
   return undefined;
@@ -289,7 +289,7 @@ export const getPublicOffers = async (): Promise<Offer[]> => {
     return mergeActiveOfferDocs(snapBool.docs, snapStr.docs, snapInt.docs);
   }
 
-  await new Promise(r => setTimeout(r, 500));
+    await new Promise(r => setTimeout(r, 500));
   return MOCK_OFFERS.filter((o) => computePersistedIsActiveFromOffer(o));
 };
 
@@ -441,8 +441,8 @@ export const createOffer = async (
   }
 
   const newOffer = { ...payload, id: Math.random().toString(36).substr(2, 9) };
-  MOCK_OFFERS.push(newOffer);
-  return newOffer;
+    MOCK_OFFERS.push(newOffer);
+    return newOffer;
 };
 
 /**
@@ -848,9 +848,11 @@ export const generateCoupon = async (
         }
         const newIssued = issued + 1;
         // maxCoupons deve vir do snapshot (mc): se odNorm perder maxCoupons na normalização,
-        // stillActive pode ficar true com issued==max e o Commit em offers falha (permission-denied).
+        // computePersistedIsActiveFromOffer pode achar “sem limite” e isActive=true no último cupom.
+        // Regra Firestore: isActive deve bater com (newIssued < max) — forçamos estoque com mc do snapshot.
         const mergedAfter = { ...odNorm, couponsIssued: newIssued, maxCoupons: mc };
-        const stillActive = computePersistedIsActiveFromOffer(mergedAfter);
+        const stillActive =
+          computePersistedIsActiveFromOffer(mergedAfter) && newIssued < mc;
         const payload = couponPayloadBase(odNorm);
         const couponRef = doc(collection(db, "coupons"));
         transaction.set(lockRef, {
@@ -970,7 +972,7 @@ export const validateCoupon = async (
   }
 
   const coupon = MOCK_COUPONS.find((c) => c.id === couponId);
-  if (!coupon) return { success: false, message: "Coupon not found." };
+    if (!coupon) return { success: false, message: "Coupon not found." };
   if (
     scannerMerchantUid &&
     coupon.merchantUid &&

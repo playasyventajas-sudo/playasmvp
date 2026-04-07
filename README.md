@@ -87,7 +87,7 @@ Deploy exige **Firebase CLI** (`npm i -g firebase-tools`) e permissão no projet
 - **Um cupom por e-mail por oferta** (dedupe em `couponLocks` + transação). Trocar o idioma da interface (PT/EN/ES) **não** apaga um cupom já gerado; um segundo pedido com o mesmo e-mail na mesma oferta retorna “já reivindicado”.
 - **E-mail** é normalizado com `trim` + **minúsculas** antes de gravar lock/cupom (`normalizeCouponEmail` em `dataService.ts`).
 - **Regras Firestore (`offers`)**: update anônimo que incrementa `couponsIssued` tolera formatos legados de `maxCoupons` / `couponsIssued` como **inteiro**, **float inteiro** (ex. `5.0`) e **string numérica** (ex. `"5"`). Isso elimina `permission-denied` intermitente entre ofertas antigas e novas sem mudar a regra de negócio do último cupom.
-- **Cálculo de `isActive` na transação**: ao incrementar `couponsIssued`, o cliente usa **`maxCoupons` lido do snapshot da oferta** (`mc`) no objeto passado a `computePersistedIsActiveFromOffer`, não só o normalizado — assim o último cupom grava `isActive: false` quando bate o limite e evita `permission-denied` no `Commit` se a normalização não trouxer `maxCoupons`.
+- **Cálculo de `isActive` na transação**: após o merge com `maxCoupons` do snapshot (`mc`), o valor gravado é **`computePersistedIsActiveFromOffer(mergedAfter) && newIssued < mc`**, alinhado à regra `isActive == (novoIssued < max)` no Firestore — o último cupom fica com `isActive: false` e evita `permission-denied` no `Commit` mesmo se a normalização falhar em outro campo.
 - **Payload do documento `coupons`**: `offerTitle` e `discount` são sempre **strings** (vazio se preciso); o SDK omite campos `undefined` e a regra exige as chaves presentes.
 
 ### Verificação recente (cupom + idiomas)
@@ -144,6 +144,7 @@ Use quando algo falhar em produção ou após editar ofertas no Console.
 
 - Não commitar `.env.local`, secrets ou `serviceAccountKey.json`.
 - Chaves `REACT_APP_*` no front são públicas por natureza; segredos de backend ficam só no GCP/Firebase/Secrets.
+- **Domínio customizado (ex.: `playasyventajas.com`)**: se o console mostrar aviso *“domain is not authorized for OAuth”* ao usar login no site fora de `*.web.app` / `*.firebaseapp.com`, adicione o domínio em **Firebase Console → Authentication → Settings → Authorized domains**.
 
 ---
 
