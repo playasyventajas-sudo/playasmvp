@@ -101,11 +101,13 @@ Deploy exige **Firebase CLI** (`npm i -g firebase-tools`) e permissão no projet
 - **Cálculo de `isActive` na transação**: após o merge com `maxCoupons` do snapshot (`mc`), o valor gravado é **`computePersistedIsActiveFromOffer(mergedAfter) && newIssued < mc`**, alinhado à regra `isActive == (novoIssued < max)` no Firestore — o último cupom fica com `isActive: false` e evita `permission-denied` no `Commit` mesmo se a normalização falhar em outro campo.
 - **Payload do documento `coupons`**: `offerTitle` e `discount` são sempre **strings** (vazio se preciso); o SDK omite campos `undefined` e a regra exige as chaves presentes.
 
-### Verificação recente (cupom + idiomas)
+### Verificação recente (build + cupom + scanner + idiomas)
 
-- **2026-04-07**: paridade de chaves PT/EN/ES em `src/translations.ts` (**238** caminhos folha por idioma, script com `tsx`); smoke manual na home em produção (`playas-e-ventajas.web.app`): troca de idioma **PT → EN → ES** com textos da navbar e hero corretos em cada um.
-- **Histórico**: bateria anterior **18/18** (6 ofertas ativas × 3 idiomas), cupons com e-mails fictícios únicos.
-- Comportamento esperado: visitante pode resgatar até o último cupom; ao atingir o limite, a oferta é inativada (`isActive: false`).
+- **Checklist técnico (CI local):** `npm run build` e `npx tsc --noEmit` na raiz; paridade i18n PT/EN/ES (`npx tsx` importando `src/translations.ts` — **239** caminhos folha por idioma).
+- **2026-04-07 (produção):** regras `coupons`: `get` com `resource == null` para ID inexistente (scanner/manual); `list` com `merchantUid`; índice composto `offerId`+`merchantUid` em `firestore.indexes.json`; painel `countCouponsForOffer` com filtro `merchantUid`; validação de cupom separa **cupom de outro comerciante** vs **falha ao gravar USED** (`COUPON_VALIDATE_WRITE_FAILED` / `validateWriteFailed` em PT/EN/ES); home reseta filtro de categoria ao mudar idioma.
+- **Smoke manual sugerido:** home **PT → EN → ES** (chips “Todos”); scanner ou código manual com cupom **da mesma conta** (`merchantUid` = `auth.uid` no doc `coupons/{id}`).
+- **Histórico:** bateria anterior **18/18** (6 ofertas ativas × 3 idiomas), e-mails fictícios únicos.
+- Comportamento esperado: último cupom inativa a oferta (`isActive: false`); visitante respeita limite e vigência.
 
 ### Tradução automática EN/ES (ofertas)
 
