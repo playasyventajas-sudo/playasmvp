@@ -965,24 +965,39 @@ export const validateCoupon = async (
 ): Promise<{ success: boolean; message: string; coupon?: Coupon }> => {
   if (isFirebaseConfigured()) {
     const cref = doc(db, "coupons", couponId);
-    const snap = await getDoc(cref);
-    if (!snap.exists()) {
-      return { success: false, message: "Coupon not found." };
+    try {
+      const snap = await getDoc(cref);
+      if (!snap.exists()) {
+        return { success: false, message: "Coupon not found." };
+      }
+      const data = snap.data() as Coupon;
+      const coupon = { id: snap.id, ...data };
+      if (
+        scannerMerchantUid &&
+        coupon.merchantUid &&
+        coupon.merchantUid !== scannerMerchantUid
+      ) {
+        return { success: false, message: "Coupon wrong merchant." };
+      }
+      if (coupon.status === "USED") {
+        return { success: false, message: "Coupon already used." };
+      }
+      await updateDoc(cref, { status: "USED" });
+      return {
+        success: true,
+        message: "Coupon Validated Successfully!",
+        coupon: { ...coupon, status: "USED" }
+      };
+    } catch (e: unknown) {
+      const code =
+        typeof e === "object" && e !== null && "code" in e
+          ? String((e as { code: unknown }).code)
+          : "";
+      if (code === "permission-denied") {
+        return { success: false, message: "Coupon wrong merchant." };
+      }
+      throw e;
     }
-    const data = snap.data() as Coupon;
-    const coupon = { id: snap.id, ...data };
-    if (
-      scannerMerchantUid &&
-      coupon.merchantUid &&
-      coupon.merchantUid !== scannerMerchantUid
-    ) {
-      return { success: false, message: "Coupon wrong merchant." };
-    }
-    if (coupon.status === "USED") {
-      return { success: false, message: "Coupon already used." };
-    }
-    await updateDoc(cref, { status: "USED" });
-    return { success: true, message: "Coupon Validated Successfully!", coupon: { ...coupon, status: "USED" } };
   }
 
   const coupon = MOCK_COUPONS.find((c) => c.id === couponId);

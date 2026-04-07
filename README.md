@@ -87,6 +87,11 @@ Deploy exige **Firebase CLI** (`npm i -g firebase-tools`) e permissão no projet
 
 - Ao **ativar limite de cupons** numa oferta que antes não tinha, o app conta cupons existentes com query em `coupons` por **`offerId` + `merchantUid`**. Só `offerId` não basta com as regras atuais (leitura exige `merchantUid == auth.uid`), senão o Firestore retorna **`permission-denied`** e o painel parece “travado”. O índice composto está em `firestore.indexes.json`.
 
+### Scanner / validar cupom (comerciante logado)
+
+- **`get` em `coupons/{id}`**: a regra deve permitir documento **inexistente** (`resource == null`); senão o Firestore nega a leitura antes de `exists()` e o scanner/manual dispara `permission-denied` mesmo com código errado ou ID inexistente.
+- **`permission-denied` no update** (cupom de outro estabelecimento): o cliente mapeia para a mensagem de “cupom de outro comerciante” quando fizer sentido.
+
 ### Cupom na página pública (visitante)
 
 - **Um cupom por e-mail por oferta** (dedupe em `couponLocks` + transação). Trocar o idioma da interface (PT/EN/ES) **não** apaga um cupom já gerado; um segundo pedido com o mesmo e-mail na mesma oferta retorna “já reivindicado”.

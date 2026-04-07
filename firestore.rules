@@ -74,8 +74,11 @@ service cloud.firestore {
         && request.resource.data.offerId is string
         && request.resource.data.createdAt is number
         && request.resource.data.merchantUid is string;
-      // So o comerciante dono do cupom le (evita listar cupons de outros / vazar e-mails).
-      allow read: if request.auth != null
+      // get: cupom inexistente → resource == null; a regra antiga lia resource.data e negava tudo (scanner quebrava).
+      // list: só cupons do próprio comerciante (query com merchantUid alinha com a regra).
+      allow get: if request.auth != null
+        && (resource == null || resource.data.merchantUid == request.auth.uid);
+      allow list: if request.auth != null
         && resource.data.merchantUid == request.auth.uid;
       allow update: if request.auth != null
         && resource.data.merchantUid == request.auth.uid
