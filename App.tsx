@@ -188,7 +188,8 @@ const OfferCard: React.FC<{ offer: Offer, onGetCoupon: (o: Offer) => void, lang:
                 .replace("{remaining}", String(remaining))
                 .replace("{total}", String(max))}
             </span>
-            {remaining > 0 && remaining <= 5 && (
+            {remaining > 0 &&
+              (remaining === 1 || (remaining <= 5 && remaining < max)) && (
               <span className="text-[10px] font-bold uppercase tracking-wide text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">
                 {remaining === 1 ? t.couponsLastOne : t.couponsFewLeft}
               </span>

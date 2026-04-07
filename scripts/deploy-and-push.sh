@@ -8,8 +8,8 @@ echo "=== 1/2 Firebase (build + deploy) ==="
 npm run deploy:playas
 
 echo ""
-echo "=== 2/2 GitHub (remote playasmvp, branch main) ==="
-git push -u playasmvp main
+echo "=== 2/2 GitHub (remote origin → playasyventajas-sudo/playasmvp, branch main) ==="
+git push -u origin main
 
 echo ""
 echo "Concluído."
