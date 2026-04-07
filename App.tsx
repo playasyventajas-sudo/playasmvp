@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { FirebaseError } from 'firebase/app';
 import { Offer, Coupon, UserRole, CompanyUser, Category, ConsumerStat, ConsumerEmailAggregate } from './types';
-import { getPublicOffers, subscribePublicOffers, getMerchantOffers, getMerchantConsumerDashboard, createOffer, updateOffer, deleteOffer, generateCoupon, validateCoupon, uploadImage, countCouponsForOffer, getOfferCouponLimitInfo, toCanonicalYmd, COUPON_SOLD_OUT, COUPON_ALREADY_CLAIMED, COUPON_INVALID_EMAIL, COUPON_OFFER_NOT_YET_VALID } from './services/dataService';
+import { getPublicOffers, subscribePublicOffers, getMerchantOffers, getMerchantConsumerDashboard, createOffer, updateOffer, deleteOffer, generateCoupon, validateCoupon, uploadImage, countCouponsForOffer, getOfferCouponLimitInfo, requestOfferAutoTranslation, toCanonicalYmd, COUPON_SOLD_OUT, COUPON_ALREADY_CLAIMED, COUPON_INVALID_EMAIL, COUPON_OFFER_NOT_YET_VALID } from './services/dataService';
 import type { OfferUpdateInput } from './services/dataService';
 import { safeImageUrl } from './utils/safeUrl';
 import { subscribeToAuthChanges, logoutCompany, updateCompanyDisplayName } from './services/authService';
@@ -515,7 +515,8 @@ const AdminPanel = ({
           await updateOffer(editingId, patch);
         }
       } else {
-        await createOffer(offerData as Omit<Offer, "id">, user.uid);
+        const created = await createOffer(offerData as Omit<Offer, "id">, user.uid);
+        void requestOfferAutoTranslation(created.id);
       }
       setIsAdding(false);
       setEditingId(null);
@@ -1436,8 +1437,7 @@ const HowItWorks = ({ lang }: { lang: Language }) => {
   return (
   <article className="max-w-3xl mx-auto px-4 py-8 md:py-12 animate-fadeIn text-gray-800">
     <h1 className="text-3xl md:text-4xl font-bold text-sea-900 mb-4">{t.title}</h1>
-    <p className="text-base md:text-lg leading-relaxed text-gray-700 mb-3">{t.description}</p>
-    <p className="text-sm text-sea-900 font-medium mb-10">{t.audienceNote}</p>
+    <p className="text-base md:text-lg leading-relaxed text-gray-700 mb-10">{t.description}</p>
 
     <h2 className="text-xl md:text-2xl font-bold text-sea-900 mb-4">{t.touristSectionTitle}</h2>
     {t.touristParagraphs.map((p, i) => (

@@ -212,7 +212,6 @@ export const translations = {
       title: "Como Funciona",
       description:
         "O Playas e Ventajas conecta visitantes a ofertas locais com cupom em QR Code. Esta página é pública para qualquer pessoa ler, turista ou empresa.",
-      audienceNote: "Você não precisa estar logado para ler esta página.",
       touristSectionTitle: "Para quem visita e quer usar o cupom",
       touristParagraphs: [
         "Na página inicial você vê as ofertas e pode filtrar por tipo, por exemplo bar, restaurante ou experiência.",
@@ -228,7 +227,7 @@ export const translations = {
       merchantParagraphs: [
         "A área da empresa é onde você se cadastra, entra com login e gerencia suas ofertas. Na criação da oferta você define título, descrição, imagem, categorias, tipo de promoção (percentual com % automático, preço de/por em reais ou texto livre como 2 por 1), datas de início e fim, publicar ou pausar e um limite opcional de cupons em QR.",
         "Limites de texto ao criar a oferta: título até 60 caracteres, descrição até 500, texto livre da promoção (modo “outros”) até 25 caracteres, nome do estabelecimento (cadastro e perfil) até 80. O formulário mostra quantos caracteres já foram usados, para manter a vitrine de ofertas limpa.",
-        "Você pode mudar o nome do estabelecimento quando quiser. Depois de criar a oferta, não é possível alterar o tipo de promoção (campo de desconto), nem título, descrição, imagem nem categorias — isso mantém a mesma promessa para quem já gerou cupom. Você pode alterar datas de vigência, o limite de cupons (QR) e publicar ou pausar. Quando há limite, o painel mostra quantos cupons já foram emitidos e quantos faltam. As ofertas aparecem em duas abas: em andamento e arquivo (pausadas ou com data de fim já passada).",
+        "Você pode mudar o nome do estabelecimento quando quiser. Depois de criar a oferta, não é possível alterar o tipo de promoção (campo de desconto), nem título, descrição, imagem nem categorias. Assim a promessa continua igual para quem já gerou cupom. Você pode alterar datas de vigência, o limite de cupons (QR) e publicar ou pausar. Quando há limite, o painel mostra quantos cupons já foram emitidos e quantos faltam. As ofertas aparecem em duas abas: em andamento e arquivo (pausadas ou com data de fim já passada).",
         "Limite de cupons (QR): se você preencher, o número mínimo é 5. Em branco = sem limite. Se já existirem cupons emitidos e você reduzir o máximo até ficar igual ou menor que a quantidade já emitida, a oferta fica inativa e some da página pública. Exemplo: se já foram emitidos 10 de 30 e você edita o máximo para 10, o sistema entende que o limite foi atingido e a oferta fica inativa. Se a oferta estava esgotada e você aumenta o máximo para acima do número já emitido, pode voltar a publicar na edição (marcando publicar). Remover o limite (deixar em branco) tira o teto de cupons.",
         "Se esquecer a senha, na tela de login use o link de recuperação, informe o e-mail do cadastro e abra o e-mail que chegar (pode ir para spam). O envio é feito pelo Firebase Authentication (Google); o remetente pode ser um endereço do Firebase. O link abre uma página segura fora deste site onde você define a nova senha. Não é dentro do Playas e Ventajas que fica essa confirmação, e sim na página que abre pelo link do e-mail.",
         "Na área logada você vê uma lista de e-mails que pediram cupom em cada oferta, para ajudar na operação no balcão. Há um ranking por e-mail: enquanto não houver nenhuma validação no seu estabelecimento, quem aparece primeiro é quem mais gerou cupom; depois que houver validações, o topo é quem mais validou cupom.",
@@ -477,7 +476,6 @@ export const translations = {
       title: "How It Works",
       description:
         "Playas e Ventajas connects visitors to local offers with QR coupons. This page is public for anyone to read, visitor or business.",
-      audienceNote: "You do not need to log in to read this page.",
       touristSectionTitle: "If you visit and want the coupon",
       touristParagraphs: [
         "On the home page you see offers and can filter by type, for example bar, restaurant, or experience.",
@@ -744,7 +742,6 @@ export const translations = {
       title: "Cómo Funciona",
       description:
         "Playas e Ventajas conecta visitantes con ofertas locales mediante cupones en QR. Esta página es pública para que cualquiera la lea, visitante o empresa.",
-      audienceNote: "No necesitas iniciar sesión para leer esta página.",
       touristSectionTitle: "Si visitas y quieres el cupón",
       touristParagraphs: [
         "En la página de inicio ves las ofertas y puedes filtrar por tipo, por ejemplo bar, restaurante o experiencia.",

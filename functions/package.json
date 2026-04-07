@@ -2,10 +2,11 @@
   "name": "playas-functions",
   "private": true,
   "engines": {
-    "node": "18"
+    "node": "20"
   },
   "main": "index.js",
   "dependencies": {
+    "@google-cloud/translate": "^8.5.1",
     "firebase-admin": "^12.7.0",
     "firebase-functions": "^5.1.1"
   }

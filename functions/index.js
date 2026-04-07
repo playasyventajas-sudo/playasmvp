@@ -4,9 +4,12 @@
  */
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const admin = require("firebase-admin");
+const { registerTranslateOffer } = require("./translateOffer");
 
 admin.initializeApp();
 const db = admin.firestore();
+
+Object.assign(exports, registerTranslateOffer(db));
 
 function parseBool(v) {
   if (v == null) return undefined;

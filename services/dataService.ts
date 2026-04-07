@@ -15,7 +15,8 @@ import {
   type QueryDocumentSnapshot
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { db, storage, isFirebaseConfigured } from "./firebaseConfig";
+import { getFunctions, httpsCallable } from "firebase/functions";
+import { app, db, storage, isFirebaseConfigured } from "./firebaseConfig";
 import {
   Offer,
   Coupon,
@@ -48,6 +49,9 @@ let MOCK_OFFERS: Offer[] = [];
 
 /** Sem Firebase: sem cupons de exemplo. */
 let MOCK_COUPONS: Coupon[] = [];
+
+/** Região das Cloud Functions (deve coincidir com `functions/translateOffer.js`). */
+const FUNCTIONS_REGION = "southamerica-east1";
 
 /** Erro quando a oferta esgotou cupons ou está inativa (turista). */
 export const COUPON_SOLD_OUT = "COUPON_SOLD_OUT";
@@ -440,6 +444,25 @@ export const createOffer = async (
   MOCK_OFFERS.push(newOffer);
   return newOffer;
 };
+
+/**
+ * Chama a Cloud Function que preenche titleEn/Es, descriptionEn/Es, discountEn/Es no Firestore.
+ * A chave da API de tradução fica só no servidor (Google ADC). Falhas são ignoradas (log no console).
+ */
+export async function requestOfferAutoTranslation(offerId: string): Promise<void> {
+  if (!isFirebaseConfigured() || !offerId?.trim()) return;
+  try {
+    const functions = getFunctions(app, FUNCTIONS_REGION);
+    const translateFn = httpsCallable(functions, "translateOfferFields");
+    const res = await translateFn({ offerId: offerId.trim() });
+    const data = res.data as { ok?: boolean; code?: string };
+    if (data && data.ok === false) {
+      console.warn("[requestOfferAutoTranslation]", data.code || "failed", data);
+    }
+  } catch (e) {
+    console.warn("[requestOfferAutoTranslation]", e);
+  }
+}
 
 function omitUndefined<T extends Record<string, unknown>>(obj: T): Record<string, unknown> {
   const out: Record<string, unknown> = {};
