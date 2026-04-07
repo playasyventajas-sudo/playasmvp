@@ -1066,133 +1066,6 @@ const AdminPanel = ({
                   .replace('{max}', String(OFFER_DESCRIPTION_MAX))}
               </span>
             </div>
-
-            <fieldset className="md:col-span-2 rounded-xl border border-dashed border-gray-200 bg-gray-50/50 p-4 space-y-3">
-              <legend className="text-sm font-semibold text-gray-800 px-1">{t.offerI18nHeading}</legend>
-              <p className="text-xs text-gray-500">{t.offerI18nHint}</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex flex-col">
-                  <label className="text-xs text-gray-600 mb-1">{t.offerTitleEnLabel}</label>
-                  <input
-                    type="text"
-                    className="border p-2 rounded w-full"
-                    maxLength={OFFER_TITLE_MAX}
-                    value={newOffer.titleEn ?? ''}
-                    onChange={(e) =>
-                      setNewOffer({
-                        ...newOffer,
-                        titleEn: clipString(e.target.value, OFFER_TITLE_MAX)
-                      })
-                    }
-                  />
-                  <span className="text-xs text-gray-400 mt-1">
-                    {t.charCounter
-                      .replace('{used}', String([...(newOffer.titleEn || '')].length))
-                      .replace('{max}', String(OFFER_TITLE_MAX))}
-                  </span>
-                </div>
-                <div className="flex flex-col">
-                  <label className="text-xs text-gray-600 mb-1">{t.offerTitleEsLabel}</label>
-                  <input
-                    type="text"
-                    className="border p-2 rounded w-full"
-                    maxLength={OFFER_TITLE_MAX}
-                    value={newOffer.titleEs ?? ''}
-                    onChange={(e) =>
-                      setNewOffer({
-                        ...newOffer,
-                        titleEs: clipString(e.target.value, OFFER_TITLE_MAX)
-                      })
-                    }
-                  />
-                  <span className="text-xs text-gray-400 mt-1">
-                    {t.charCounter
-                      .replace('{used}', String([...(newOffer.titleEs || '')].length))
-                      .replace('{max}', String(OFFER_TITLE_MAX))}
-                  </span>
-                </div>
-                <div className="flex flex-col md:col-span-2">
-                  <label className="text-xs text-gray-600 mb-1">{t.offerDescEnLabel}</label>
-                  <textarea
-                    className="border p-2 rounded w-full"
-                    rows={3}
-                    maxLength={OFFER_DESCRIPTION_MAX}
-                    value={newOffer.descriptionEn ?? ''}
-                    onChange={(e) =>
-                      setNewOffer({
-                        ...newOffer,
-                        descriptionEn: clipString(e.target.value, OFFER_DESCRIPTION_MAX)
-                      })
-                    }
-                  />
-                  <span className="text-xs text-gray-400 mt-1">
-                    {t.charCounter
-                      .replace('{used}', String([...(newOffer.descriptionEn || '')].length))
-                      .replace('{max}', String(OFFER_DESCRIPTION_MAX))}
-                  </span>
-                </div>
-                <div className="flex flex-col md:col-span-2">
-                  <label className="text-xs text-gray-600 mb-1">{t.offerDescEsLabel}</label>
-                  <textarea
-                    className="border p-2 rounded w-full"
-                    rows={3}
-                    maxLength={OFFER_DESCRIPTION_MAX}
-                    value={newOffer.descriptionEs ?? ''}
-                    onChange={(e) =>
-                      setNewOffer({
-                        ...newOffer,
-                        descriptionEs: clipString(e.target.value, OFFER_DESCRIPTION_MAX)
-                      })
-                    }
-                  />
-                  <span className="text-xs text-gray-400 mt-1">
-                    {t.charCounter
-                      .replace('{used}', String([...(newOffer.descriptionEs || '')].length))
-                      .replace('{max}', String(OFFER_DESCRIPTION_MAX))}
-                  </span>
-                </div>
-                <div className="flex flex-col">
-                  <label className="text-xs text-gray-600 mb-1">{t.offerDiscountEnLabel}</label>
-                  <input
-                    type="text"
-                    className="border p-2 rounded w-full"
-                    maxLength={OFFER_DISCOUNT_MAX}
-                    value={newOffer.discountEn ?? ''}
-                    onChange={(e) =>
-                      setNewOffer({
-                        ...newOffer,
-                        discountEn: clipString(e.target.value, OFFER_DISCOUNT_MAX)
-                      })
-                    }
-                  />
-                  <span className="text-xs text-gray-400 mt-1">
-                    {t.charCounter
-                      .replace('{used}', String([...(newOffer.discountEn || '')].length))
-                      .replace('{max}', String(OFFER_DISCOUNT_MAX))}
-                  </span>
-                </div>
-                <div className="flex flex-col">
-                  <label className="text-xs text-gray-600 mb-1">{t.offerDiscountEsLabel}</label>
-                  <input
-                    type="text"
-                    className="border p-2 rounded w-full"
-                    maxLength={OFFER_DISCOUNT_MAX}
-                    value={newOffer.discountEs ?? ''}
-                    onChange={(e) =>
-                      setNewOffer({
-                        ...newOffer,
-                        discountEs: clipString(e.target.value, OFFER_DISCOUNT_MAX)
-                      })
-                    }
-                  />
-                  <span className="text-xs text-gray-400 mt-1">
-                    {t.charCounter
-                      .replace('{used}', String([...(newOffer.discountEs || '')].length))
-                      .replace('{max}', String(OFFER_DISCOUNT_MAX))}
-                  </span>
-                </div>
-              </div>
-            </fieldset>
           </div>
           <button type="submit" disabled={isUploading} className={`mt-4 px-6 py-2 rounded-lg font-bold text-white ${isUploading ? 'bg-gray-400 cursor-not-allowed' : 'bg-sand-500 hover:bg-sand-400'}`}>{t.save}</button>
         </form>
@@ -1626,6 +1499,8 @@ const App = () => {
   }, []);
 
   const [offers, setOffers] = useState<Offer[]>([]);
+  /** Evita mostrar “nenhuma oferta” antes da primeira resposta do Firestore (comum no celular). */
+  const [publicOffersReady, setPublicOffersReady] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -1656,12 +1531,36 @@ const App = () => {
   const tCats = translations[lang].categories;
 
   useEffect(() => {
-    const unsubOffers = subscribePublicOffers(setOffers);
+    let cancelled = false;
+    const markReady = () => {
+      if (!cancelled) setPublicOffersReady(true);
+    };
+
+    const unsubOffers = subscribePublicOffers((data) => {
+      if (cancelled) return;
+      setOffers(data);
+      markReady();
+    });
+
+    if (isFirebaseConfigured()) {
+      getPublicOffers()
+        .then((data) => {
+          if (cancelled) return;
+          setOffers(data);
+          markReady();
+        })
+        .catch((e) => {
+          console.error(e);
+          markReady();
+        });
+    }
+
     const unsubAuth = subscribeToAuthChanges((u) => {
       setUser(u);
       setAuthReady(true);
     });
     return () => {
+      cancelled = true;
       unsubOffers();
       unsubAuth();
     };
@@ -1743,12 +1642,40 @@ const App = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filteredOffers.length > 0 ? (
-                filteredOffers.map(offer => (
-                  <OfferCard 
-                    key={offer.id} 
-                    offer={offer} 
-                    onGetCoupon={setSelectedOffer} 
+              {!publicOffersReady ? (
+                <div
+                  className="col-span-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+                  aria-busy="true"
+                  aria-label={t.home.loadingOffers}
+                >
+                  {[0, 1, 2, 3, 4, 5].map((i) => (
+                    <div
+                      key={i}
+                      className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 animate-pulse"
+                    >
+                      <div className="h-44 sm:h-48 bg-gray-200" />
+                      <div className="p-4 space-y-3">
+                        <div className="h-4 bg-gray-200 rounded w-4/5" />
+                        <div className="h-3 bg-gray-100 rounded w-1/2" />
+                        <div className="h-16 bg-gray-100 rounded" />
+                        <div className="h-9 bg-gray-200 rounded-lg w-full" />
+                      </div>
+                    </div>
+                  ))}
+                  <p className="col-span-full flex items-center justify-center gap-2 text-sm text-gray-500 py-2">
+                    <span
+                      className="h-4 w-4 border-2 border-sea-200 border-t-sea-600 rounded-full animate-spin shrink-0"
+                      aria-hidden
+                    />
+                    {t.home.loadingOffers}
+                  </p>
+                </div>
+              ) : filteredOffers.length > 0 ? (
+                filteredOffers.map((offer) => (
+                  <OfferCard
+                    key={offer.id}
+                    offer={offer}
+                    onGetCoupon={setSelectedOffer}
                     lang={lang}
                   />
                 ))

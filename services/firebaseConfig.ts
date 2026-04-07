@@ -1,5 +1,10 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import {
+  getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager
+} from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { getStorage } from "firebase/storage";
 
@@ -15,7 +20,24 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+
+/** IndexedDB quando possível: primeira pintura mais rápida no celular em visitas seguintes. */
+function createFirestore() {
+  if (typeof indexedDB === "undefined") {
+    return getFirestore(app);
+  }
+  try {
+    return initializeFirestore(app, {
+      localCache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager()
+      })
+    });
+  } catch {
+    return getFirestore(app);
+  }
+}
+
+export const db = createFirestore();
 export const auth = getAuth(app);
 export const storage = getStorage(app);
 
