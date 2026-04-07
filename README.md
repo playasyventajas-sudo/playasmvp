@@ -69,8 +69,15 @@ Sem `.env.local`, o app usa **modo demo** (mock em memória, sem dados reais).
 | `npm run dev` | Servidor de desenvolvimento (porta 3000) |
 | `npm run build` | Build de produção → pasta `dist/` |
 | `npm run deploy:playas` | Build + `firebase deploy` (Hosting, regras Firestore/Storage e **Cloud Functions**) no projeto `playas-e-ventajas` |
+| `npm run deploy:push` | `deploy:playas` + `git push` para o remote `playasmvp` (branch `main`) |
 
 Deploy exige **Firebase CLI** (`npm i -g firebase-tools`) e permissão no projeto. Plano **Blaze** pode ser necessário para Functions com APIs Google.
+
+### Vitrine pública (home)
+
+- **`validUntil`**: ofertas com fim de vigência já passado não aparecem (data local `YYYY-MM-DD`).
+- **`validFrom` futuro**: se a oferta começa amanhã, **só entra na lista no dia de início** (inclusive). O painel do comerciante continua enxergando a oferta como ativa até lá; cupom segue bloqueado até a data (`generateCoupon`).
+- **Limite de cupons esgotado** e **pausa** (`publishIntent`): o filtro da home usa a mesma regra que o app usa para o estado efetivo (`computePersistedIsActiveFromOffer`), para não exibir card se os dados indicam esgotado/fora de vigência mesmo quando o campo `isActive` no Firestore estiver defasado. Ao emitir o último cupom, a transação grava `isActive: false`. Para alinhar documentos antigos: `npm run recompute:isactive`.
 
 ### Tradução automática EN/ES (ofertas)
 

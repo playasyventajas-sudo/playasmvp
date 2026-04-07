@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useId } from 'react';
 import { FirebaseError } from 'firebase/app';
 import { Offer, Coupon, UserRole, CompanyUser, Category, ConsumerStat, ConsumerEmailAggregate } from './types';
-import { getPublicOffers, subscribePublicOffers, getMerchantOffers, getMerchantConsumerDashboard, createOffer, updateOffer, deleteOffer, generateCoupon, validateCoupon, uploadImage, countCouponsForOffer, getOfferCouponLimitInfo, requestOfferAutoTranslation, toCanonicalYmd, COUPON_SOLD_OUT, COUPON_ALREADY_CLAIMED, COUPON_INVALID_EMAIL, COUPON_OFFER_NOT_YET_VALID } from './services/dataService';
+import { getPublicOffers, subscribePublicOffers, getMerchantOffers, getMerchantConsumerDashboard, createOffer, updateOffer, deleteOffer, generateCoupon, validateCoupon, uploadImage, countCouponsForOffer, getOfferCouponLimitInfo, requestOfferAutoTranslation, toCanonicalYmd, computePersistedIsActiveFromOffer, COUPON_SOLD_OUT, COUPON_ALREADY_CLAIMED, COUPON_INVALID_EMAIL, COUPON_OFFER_NOT_YET_VALID } from './services/dataService';
 import type { OfferUpdateInput } from './services/dataService';
 import { safeImageUrl } from './utils/safeUrl';
 import { subscribeToAuthChanges, logoutCompany, updateCompanyDisplayName } from './services/authService';
@@ -358,6 +358,9 @@ const AdminPanel = ({
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  /** Nome exibido ao lado do botão (input file nativo usa idioma do SO). */
+  const [pickedImageFileName, setPickedImageFileName] = useState<string | null>(null);
+  const offerImageInputId = useId();
   const [newOffer, setNewOffer] = useState<Partial<Offer>>({
     title: '',
     description: '',
@@ -521,6 +524,7 @@ const AdminPanel = ({
       setIsAdding(false);
       setEditingId(null);
       resetPromoFields();
+      setPickedImageFileName(null);
       setNewOffer({
         title: '',
         description: '',
@@ -545,6 +549,7 @@ const AdminPanel = ({
   };
 
   const handleEdit = (offer: Offer) => {
+    setPickedImageFileName(null);
     setNewOffer(offer);
     setEditingId(offer.id);
     setIsAdding(true);
@@ -572,8 +577,10 @@ const AdminPanel = ({
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      setPickedImageFileName(file.name);
       if (file.size > 2 * 1024 * 1024) {
         alert("File too large. Max 2MB.");
+        setPickedImageFileName(null);
         return;
       }
       setIsUploading(true);
@@ -587,6 +594,7 @@ const AdminPanel = ({
         setIsUploading(false);
       }
     }
+    e.target.value = "";
   };
 
   const toggleCategory = (cat: Category) => {
@@ -605,6 +613,7 @@ const AdminPanel = ({
     setIsAdding(false);
     setEditingId(null);
     resetPromoFields();
+    setPickedImageFileName(null);
     setNewOffer({
       title: '',
       description: '',
@@ -676,6 +685,7 @@ const AdminPanel = ({
             onClick={() => {
               setEditingId(null);
               resetPromoFields();
+              setPickedImageFileName(null);
               setNewOffer({
                 title: '',
                 description: '',
@@ -972,20 +982,48 @@ const AdminPanel = ({
             </div>
 
             <div className="flex flex-col md:col-span-2">
-              <label className="text-xs text-gray-500 mb-1 ml-1">{t.placeholders.uploadImage}</label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                disabled={!!editingId}
-                className={`border p-2 rounded text-sm max-w-lg ${editingId ? 'opacity-50 cursor-not-allowed' : ''}`}
-              />
-              {isUploading && <span className="text-xs text-sea-600 animate-pulse mt-1">{t.uploading}</span>}
+              <span className="text-xs text-gray-500 mb-1 ml-1">{t.placeholders.uploadImage}</span>
+              {editingId ? (
+                <p className="text-sm text-gray-600 mt-1">{t.placeholders.uploadImageLocked}</p>
+              ) : (
+                <>
+                  <div className="flex flex-wrap items-center gap-3 mt-1">
+                    <input
+                      id={offerImageInputId}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      disabled={isUploading}
+                      className="sr-only"
+                      aria-label={t.placeholders.uploadImage}
+                    />
+                    <label
+                      htmlFor={offerImageInputId}
+                      className={`inline-flex items-center px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-800 shadow-sm hover:bg-gray-50 cursor-pointer ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}
+                    >
+                      {t.placeholders.uploadFileButton}
+                    </label>
+                    <span className="text-sm text-gray-500 truncate max-w-[min(100%,14rem)] sm:max-w-xs" title={pickedImageFileName ?? undefined}>
+                      {pickedImageFileName || t.placeholders.uploadFileNone}
+                    </span>
+                  </div>
+                  {isUploading && <span className="text-xs text-sea-600 animate-pulse mt-1">{t.uploading}</span>}
+                </>
+              )}
               {newOffer.imageUrl && !isUploading && (
                 <div className="mt-2 relative w-20 h-20">
-                  <img src={safeImageUrl(newOffer.imageUrl) || ''} alt="Preview" className="w-full h-full object-cover rounded border border-gray-200" />
+                  <img src={safeImageUrl(newOffer.imageUrl) || ''} alt="" className="w-full h-full object-cover rounded border border-gray-200" />
                   {!editingId && (
-                    <button type="button" onClick={() => setNewOffer(prev => ({ ...prev, imageUrl: '' }))} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow">×</button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPickedImageFileName(null);
+                        setNewOffer(prev => ({ ...prev, imageUrl: '' }));
+                      }}
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow"
+                    >
+                      ×
+                    </button>
                   )}
                 </div>
               )}
@@ -1583,10 +1621,13 @@ const App = () => {
   const filteredOffers = offers.filter(offer => {
     const now = localDateYmd();
     const until = toCanonicalYmd(offer.validUntil as unknown);
+    const from = offer.validFrom ? toCanonicalYmd(offer.validFrom as unknown) : undefined;
     // Só esconde por fim de vigência quando a data existe e já passou (legado sem validUntil parseável continua visível).
     if (until && until < now) return false;
-    // validFrom no futuro: oferta continua visível; cupom só pode ser gerado a partir da data (generateCoupon).
-    if (!offer.isActive) return false;
+    // Início programado: na vitrine pública só aparece a partir do dia de validFrom (inclusive).
+    if (from && from > now) return false;
+    // Esgotado / pausada / vigência / limite: mesma regra que persiste isActive (evita doc desatualizado na query).
+    if (!computePersistedIsActiveFromOffer(offer)) return false;
     if (selectedCategories.length > 0) {
       if (!offer.categories || !offer.categories.some(c => selectedCategories.includes(c))) return false;
     }
