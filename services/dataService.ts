@@ -806,10 +806,11 @@ export const generateCoupon = async (
   assertOfferDatesAllowCoupon(offer);
 
   const merchantUid = offer.ownerUid?.trim() || "";
+  // Firestore omite chaves com valor `undefined`; a regra exige hasAll(offerTitle, discount, …) → permission-denied.
   const couponPayloadBase = (od: Offer): Omit<Coupon, "id"> => ({
     offerId: od.id,
-    offerTitle: offerTitle(od, lang),
-    discount: offerDiscount(od, lang),
+    offerTitle: clipString((offerTitle(od, lang) ?? "").trim(), OFFER_TITLE_MAX),
+    discount: clipString((offerDiscount(od, lang) ?? "").trim(), OFFER_DISCOUNT_MAX),
     userEmail: norm,
     createdAt: Date.now(),
     status: "VALID",
