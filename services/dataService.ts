@@ -847,7 +847,9 @@ export const generateCoupon = async (
           throw new Error(COUPON_SOLD_OUT);
         }
         const newIssued = issued + 1;
-        const mergedAfter = { ...odNorm, couponsIssued: newIssued };
+        // maxCoupons deve vir do snapshot (mc): se odNorm perder maxCoupons na normalização,
+        // stillActive pode ficar true com issued==max e o Commit em offers falha (permission-denied).
+        const mergedAfter = { ...odNorm, couponsIssued: newIssued, maxCoupons: mc };
         const stillActive = computePersistedIsActiveFromOffer(mergedAfter);
         const payload = couponPayloadBase(odNorm);
         const couponRef = doc(collection(db, "coupons"));
