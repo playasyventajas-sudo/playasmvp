@@ -6,14 +6,15 @@ service cloud.firestore {
     function isWholeNumberLike(n) {
       return n is int
         || (n is float && int(n) == n)
-        || (n is string && n.matches('^-?[0-9]+$'));
+        // Também aceita strings legadas com .0 (ex.: "9.0", "8.000")
+        || (n is string && n.matches('^-?[0-9]+([.][0]+)?$'));
     }
     function toWholeOrNeg1(n) {
       return n is int
         ? n
         : (n is float && int(n) == n
             ? int(n)
-            : (n is string && n.matches('^-?[0-9]+$') ? int(n) : -1));
+            : (n is string && n.matches('^-?[0-9]+([.][0]+)?$') ? int(n) : -1));
     }
     function offerMaxCouponsWhole(data) {
       return data.keys().hasAny(['maxCoupons']) && toWholeOrNeg1(data.maxCoupons) >= 5
