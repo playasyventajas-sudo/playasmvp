@@ -86,8 +86,13 @@ Deploy exige **Firebase CLI** (`npm i -g firebase-tools`) e permissão no projet
 
 - **Um cupom por e-mail por oferta** (dedupe em `couponLocks` + transação). Trocar o idioma da interface (PT/EN/ES) **não** apaga um cupom já gerado; um segundo pedido com o mesmo e-mail na mesma oferta retorna “já reivindicado”.
 - **E-mail** é normalizado com `trim` + **minúsculas** antes de gravar lock/cupom (`normalizeCouponEmail` em `dataService.ts`).
-- **Regras Firestore (`offers`)**: update anônimo que incrementa `couponsIssued` aceita `maxCoupons` / `couponsIssued` como **inteiro ou float inteiro** (ex. `5.0`), para evitar `permission-denied` por tipo numérico no Console/import.
+- **Regras Firestore (`offers`)**: update anônimo que incrementa `couponsIssued` tolera formatos legados de `maxCoupons` / `couponsIssued` como **inteiro**, **float inteiro** (ex. `5.0`) e **string numérica** (ex. `"5"`). Isso elimina `permission-denied` intermitente entre ofertas antigas e novas sem mudar a regra de negócio do último cupom.
 - **Payload do documento `coupons`**: `offerTitle` e `discount` são sempre **strings** (vazio se preciso); o SDK omite campos `undefined` e a regra exige as chaves presentes.
+
+### Verificação recente (cupom)
+
+- Bateria de teste executada após os ajustes: **18/18 sucessos** (6 ofertas ativas x 3 idiomas PT/EN/ES), gerando cupom com e-mails falsos únicos.
+- Comportamento esperado preservado: visitante pode resgatar até o último cupom; ao atingir o limite, a oferta é inativada (`isActive: false`).
 
 ### Tradução automática EN/ES (ofertas)
 
