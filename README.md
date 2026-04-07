@@ -2,6 +2,8 @@
 
 Aplicação web (React + Vite) para vitrine pública de ofertas, geração de cupom com QR e área do comerciante (login, ofertas, validação de cupom). **Firebase** em produção (Auth, Firestore, Storage) com regras versionadas no repositório.
 
+**Código-fonte:** [github.com/playasyventajas-sudo/playasmvp](https://github.com/playasyventajas-sudo/playasmvp) (`origin` / branch `main`).
+
 ---
 
 ## Stack
@@ -78,6 +80,14 @@ Deploy exige **Firebase CLI** (`npm i -g firebase-tools`) e permissão no projet
 - **`validUntil`**: ofertas com fim de vigência já passado não aparecem (data local `YYYY-MM-DD`).
 - **`validFrom` futuro**: se a oferta começa amanhã, **só entra na lista no dia de início** (inclusive). O painel do comerciante continua enxergando a oferta como ativa até lá; cupom segue bloqueado até a data (`generateCoupon`).
 - **Limite de cupons esgotado** e **pausa** (`publishIntent`): o filtro da home usa a mesma regra que o app usa para o estado efetivo (`computePersistedIsActiveFromOffer`), para não exibir card se os dados indicam esgotado/fora de vigência mesmo quando o campo `isActive` no Firestore estiver defasado. Ao emitir o último cupom, a transação grava `isActive: false`. Para alinhar documentos antigos: `npm run recompute:isactive`.
+- **Selo “Poucos cupons”** no card: só quando ainda restam de **2 a 5** cupons **e** `restantes < máximo` (estoque cheio, ex. 5/5, não exibe selo). **“Último cupom”** quando resta **1**.
+
+### Cupom na página pública (visitante)
+
+- **Um cupom por e-mail por oferta** (dedupe em `couponLocks` + transação). Trocar o idioma da interface (PT/EN/ES) **não** apaga um cupom já gerado; um segundo pedido com o mesmo e-mail na mesma oferta retorna “já reivindicado”.
+- **E-mail** é normalizado com `trim` + **minúsculas** antes de gravar lock/cupom (`normalizeCouponEmail` em `dataService.ts`).
+- **Regras Firestore (`offers`)**: update anônimo que incrementa `couponsIssued` aceita `maxCoupons` / `couponsIssued` como **inteiro ou float inteiro** (ex. `5.0`), para evitar `permission-denied` por tipo numérico no Console/import.
+- **Payload do documento `coupons`**: `offerTitle` e `discount` são sempre **strings** (vazio se preciso); o SDK omite campos `undefined` e a regra exige as chaves presentes.
 
 ### Tradução automática EN/ES (ofertas)
 
