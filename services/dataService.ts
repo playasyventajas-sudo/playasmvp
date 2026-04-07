@@ -127,9 +127,9 @@ function assertOfferDatesAllowCoupon(offer: Offer): void {
   }
 }
 
-/** Texto gravado no cupom: trim; formato livre (aceita qualquer texto não vazio). */
+/** Texto gravado no cupom: trim + minúsculas (mesmo e-mail em qualquer idioma/UI = mesma identidade). */
 export function normalizeCouponEmail(email: string): string {
-  return (email || "").trim();
+  return (email || "").trim().toLowerCase();
 }
 
 /** ID estável do doc em `couponLocks` (1 cupom por oferta + e-mail). */
