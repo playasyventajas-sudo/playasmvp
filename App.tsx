@@ -497,7 +497,7 @@ const AdminPanel = ({
             ...i18n
           } as OfferUpdateInput);
         } else if (!hadLimit && hasLimitNow) {
-          const cnt = await countCouponsForOffer(editingId);
+          const cnt = await countCouponsForOffer(editingId, user.uid);
           await updateOffer(editingId, {
             validFrom: vf,
             validUntil: vu,

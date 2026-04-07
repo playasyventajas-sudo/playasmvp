@@ -70,7 +70,7 @@ Sem `.env.local`, o app usa **modo demo** (mock em memória, sem dados reais).
 |---------|-----------|
 | `npm run dev` | Servidor de desenvolvimento (porta 3000) |
 | `npm run build` | Build de produção → pasta `dist/` |
-| `npm run deploy:playas` | Build + `firebase deploy` (Hosting, regras Firestore/Storage e **Cloud Functions**) no projeto `playas-e-ventajas` |
+| `npm run deploy:playas` | Build + `firebase deploy` (Hosting, regras Firestore, **índices** Firestore, Storage e **Cloud Functions**) no projeto `playas-e-ventajas` |
 | `npm run deploy:push` | `deploy:playas` + `git push` para o remote `origin` ([playasyventajas-sudo/playasmvp](https://github.com/playasyventajas-sudo/playasmvp), branch `main`) |
 
 Deploy exige **Firebase CLI** (`npm i -g firebase-tools`) e permissão no projeto. Plano **Blaze** pode ser necessário para Functions com APIs Google.
@@ -81,6 +81,10 @@ Deploy exige **Firebase CLI** (`npm i -g firebase-tools`) e permissão no projet
 - **`validFrom` futuro**: se a oferta começa amanhã, **só entra na lista no dia de início** (inclusive). O painel do comerciante continua enxergando a oferta como ativa até lá; cupom segue bloqueado até a data (`generateCoupon`).
 - **Limite de cupons esgotado** e **pausa** (`publishIntent`): o filtro da home usa a mesma regra que o app usa para o estado efetivo (`computePersistedIsActiveFromOffer`), para não exibir card se os dados indicam esgotado/fora de vigência mesmo quando o campo `isActive` no Firestore estiver defasado. Ao emitir o último cupom, a transação grava `isActive: false`. Para alinhar documentos antigos: `npm run recompute:isactive`.
 - **Selo “Poucos cupons”** no card: só quando ainda restam de **2 a 5** cupons **e** `restantes < máximo` (estoque cheio, ex. 5/5, não exibe selo). **“Último cupom”** quando resta **1**.
+
+### Painel do comerciante (`countCouponsForOffer`)
+
+- Ao **ativar limite de cupons** numa oferta que antes não tinha, o app conta cupons existentes com query em `coupons` por **`offerId` + `merchantUid`**. Só `offerId` não basta com as regras atuais (leitura exige `merchantUid == auth.uid`), senão o Firestore retorna **`permission-denied`** e o painel parece “travado”. O índice composto está em `firestore.indexes.json`.
 
 ### Cupom na página pública (visitante)
 

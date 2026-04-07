@@ -1,0 +1,13 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "coupons",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "offerId", "order": "ASCENDING" },
+        { "fieldPath": "merchantUid", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

@@ -248,14 +248,28 @@ export function getOfferCouponLimitInfo(offer: Offer): {
   return { hasLimit, max: max ?? 0, issued, remaining, pctRemaining };
 }
 
-export const countCouponsForOffer = async (offerId: string): Promise<number> => {
+/**
+ * Conta cupons da oferta **para o comerciante** (merchantUid obrigatório no Firebase).
+ * Query só por `offerId` falha nas regras: leitura de `coupons` exige `merchantUid == auth.uid`;
+ * sem o segundo filtro o Firestore pode negar a listagem inteira (`permission-denied`).
+ */
+export const countCouponsForOffer = async (
+  offerId: string,
+  merchantUid: string
+): Promise<number> => {
   if (!offerId) return 0;
   if (isFirebaseConfigured()) {
-    const q = query(collection(db, "coupons"), where("offerId", "==", offerId));
+    const q = query(
+      collection(db, "coupons"),
+      where("offerId", "==", offerId),
+      where("merchantUid", "==", merchantUid)
+    );
     const snap = await getDocs(q);
     return snap.size;
   }
-  return MOCK_COUPONS.filter((c) => c.offerId === offerId).length;
+  return MOCK_COUPONS.filter(
+    (c) => c.offerId === offerId && c.merchantUid === merchantUid
+  ).length;
 };
 
 /** Mescla queries por isActive (boolean true, string "true", int 1 — legado/Console). */
