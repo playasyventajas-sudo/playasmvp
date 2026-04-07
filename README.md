@@ -90,7 +90,8 @@ Deploy exige **Firebase CLI** (`npm i -g firebase-tools`) e permissão no projet
 ### Scanner / validar cupom (comerciante logado)
 
 - **`get` em `coupons/{id}`**: a regra deve permitir documento **inexistente** (`resource == null`); senão o Firestore nega a leitura antes de `exists()` e o scanner/manual dispara `permission-denied` mesmo com código errado ou ID inexistente.
-- **`permission-denied` no update** (cupom de outro estabelecimento): o cliente mapeia para a mensagem de “cupom de outro comerciante” quando fizer sentido.
+- **“Este cupom não pertence às suas ofertas”**: o cupom no Firestore tem `merchantUid` ≠ `auth.uid` da sessão (cupom de **outra** empresa, ou login na conta **errada**), ou o `get` foi negado por regra. **Não** é o caso de “não consegui gravar USED” — esse caso usa outra mensagem (`validateWriteFailed`).
+- **`permission-denied` no `updateDoc` (marcar USED)**: mensagem específica de falha ao registrar uso (rede/regra), não “outro comerciante”.
 
 ### Cupom na página pública (visitante)
 

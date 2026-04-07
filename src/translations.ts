@@ -209,6 +209,8 @@ export const translations = {
       notFound: "Cupom não encontrado.",
       alreadyUsed: "Cupom já utilizado.",
       wrongMerchant: "Este cupom não pertence às suas ofertas.",
+      validateWriteFailed:
+        "Não foi possível registrar o uso do cupom. Tente de novo ou verifique a conexão.",
       successMsg: "Cupom Validado com Sucesso!"
     },
     howItWorks: {
@@ -476,6 +478,8 @@ export const translations = {
       notFound: "Coupon not found.",
       alreadyUsed: "Coupon already used.",
       wrongMerchant: "This coupon is not for your offers.",
+      validateWriteFailed:
+        "Could not record coupon use. Try again or check your connection.",
       successMsg: "Coupon Validated Successfully!"
     },
     howItWorks: {
@@ -745,6 +749,8 @@ export const translations = {
       notFound: "Cupón no encontrado.",
       alreadyUsed: "Cupón ya utilizado.",
       wrongMerchant: "Este cupón no corresponde a tus ofertas.",
+      validateWriteFailed:
+        "No se pudo registrar el uso del cupón. Inténtalo de nuevo o revisa la conexión.",
       successMsg: "¡Cupón Validado Exitosamente!"
     },
     howItWorks: {

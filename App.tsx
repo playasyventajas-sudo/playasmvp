@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useId } from 'react';
 import { FirebaseError } from 'firebase/app';
 import { Offer, Coupon, UserRole, CompanyUser, Category, ConsumerStat, ConsumerEmailAggregate } from './types';
-import { getPublicOffers, subscribePublicOffers, getMerchantOffers, getMerchantConsumerDashboard, createOffer, updateOffer, deleteOffer, generateCoupon, validateCoupon, uploadImage, countCouponsForOffer, getOfferCouponLimitInfo, requestOfferAutoTranslation, toCanonicalYmd, computePersistedIsActiveFromOffer, COUPON_SOLD_OUT, COUPON_ALREADY_CLAIMED, COUPON_INVALID_EMAIL, COUPON_OFFER_NOT_YET_VALID } from './services/dataService';
+import { getPublicOffers, subscribePublicOffers, getMerchantOffers, getMerchantConsumerDashboard, createOffer, updateOffer, deleteOffer, generateCoupon, validateCoupon, uploadImage, countCouponsForOffer, getOfferCouponLimitInfo, requestOfferAutoTranslation, toCanonicalYmd, computePersistedIsActiveFromOffer, COUPON_SOLD_OUT, COUPON_ALREADY_CLAIMED, COUPON_INVALID_EMAIL, COUPON_OFFER_NOT_YET_VALID, COUPON_VALIDATE_WRITE_FAILED } from './services/dataService';
 import type { OfferUpdateInput } from './services/dataService';
 import { safeImageUrl } from './utils/safeUrl';
 import { subscribeToAuthChanges, logoutCompany, updateCompanyDisplayName } from './services/authService';
@@ -1335,9 +1335,10 @@ const MerchantPanel = ({ lang, merchantUid }: { lang: Language; merchantUid: str
     else if (message === "Coupon not found.") message = t.notFound;
     else if (message === "Coupon already used.") message = t.alreadyUsed;
     else if (message === "Coupon wrong merchant.") message = t.wrongMerchant;
+    else if (message === COUPON_VALIDATE_WRITE_FAILED) message = t.validateWriteFailed;
 
     setScanResult({ success: result.success, message });
-  }, [merchantUid, t.successMsg, t.notFound, t.alreadyUsed, t.wrongMerchant]);
+  }, [merchantUid, t.successMsg, t.notFound, t.alreadyUsed, t.wrongMerchant, t.validateWriteFailed]);
 
   useEffect(() => {
     if (!scanning) return;
