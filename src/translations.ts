@@ -49,7 +49,8 @@ export const translations = {
       clear: "Limpar",
       noOffers: "Nenhuma oferta encontrada para este período.",
       loadingOffers: "Carregando ofertas…",
-      clearFilters: "Limpar filtros para ver todas as ofertas"
+      clearFilters: "Limpar filtros para ver todas as ofertas",
+      allCities: "Todas as cidades"
     },
     offerCard: {
       validUntil: "Válido até",
@@ -115,6 +116,7 @@ export const translations = {
         validFrom: "Válido de",
         validUntil: "Válido até",
         isActive: "Oferta Ativa",
+        city: "Cidade",
         categories: "Categorias"
       },
       confirmDelete: "Tem certeza que deseja excluir esta oferta?",
@@ -161,6 +163,7 @@ export const translations = {
         "Como em sites de cupom: frase curta. Ex.: “Chope duplo”, “Compre 1 leve 2”.",
       promoInvalid:
         "Preencha a promoção: percentual entre 1 e 100, os dois valores em reais, ou o texto da oferta.",
+      cityRequired: "Selecione a cidade da oferta.",
       categoryRequired: "Selecione ao menos uma categoria (bar, restaurante, experiência, etc.).",
       charCounter: "{used}/{max}",
       profileHeading: "Nome do estabelecimento",
@@ -322,7 +325,8 @@ export const translations = {
       clear: "Clear",
       noOffers: "No offers found for this date range.",
       loadingOffers: "Loading offers…",
-      clearFilters: "Clear filters to see all offers"
+      clearFilters: "Clear filters to see all offers",
+      allCities: "All cities"
     },
     offerCard: {
       validUntil: "Valid until",
@@ -387,6 +391,7 @@ export const translations = {
         validFrom: "Valid From",
         validUntil: "Valid Until",
         isActive: "Active Offer",
+        city: "City",
         categories: "Categories"
       },
       confirmDelete: "Are you sure you want to delete this offer?",
@@ -430,6 +435,7 @@ export const translations = {
       dealHint: "Short phrase, like deal sites: clear and scannable.",
       promoInvalid:
         "Fill in the promotion: percent 1–100, both prices, or the offer text.",
+      cityRequired: "Select the offer city.",
       categoryRequired: "Select at least one category (bar, restaurant, experience, etc.).",
       charCounter: "{used}/{max}",
       profileHeading: "Establishment name",
@@ -591,7 +597,8 @@ export const translations = {
       clear: "Limpiar",
       noOffers: "No se encontraron ofertas para este período.",
       loadingOffers: "Cargando ofertas…",
-      clearFilters: "Limpiar filtros para ver todas las ofertas"
+      clearFilters: "Limpiar filtros para ver todas las ofertas",
+      allCities: "Todas las ciudades"
     },
     offerCard: {
       validUntil: "Válido hasta",
@@ -656,6 +663,7 @@ export const translations = {
         validFrom: "Válido desde",
         validUntil: "Válido hasta",
         isActive: "Oferta Activa",
+        city: "Ciudad",
         categories: "Categorías"
       },
       confirmDelete: "¿Estás seguro de que deseas eliminar esta oferta?",
@@ -701,6 +709,7 @@ export const translations = {
       dealHint: "Como en cuponeras: frase corta y clara.",
       promoInvalid:
         "Completa la promoción: porcentaje entre 1 y 100, ambos precios o el texto.",
+      cityRequired: "Selecciona la ciudad de la oferta.",
       categoryRequired: "Selecciona al menos una categoría (bar, restaurante, experiencia, etc.).",
       charCounter: "{used}/{max}",
       profileHeading: "Nombre del establecimiento",

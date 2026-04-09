@@ -7,6 +7,19 @@ export enum UserRole {
 }
 
 export type Category = 'bar' | 'restaurant' | 'experience' | 'lodging' | 'other';
+export type OfferCity =
+  | 'Araruama'
+  | 'Armação dos Búzios'
+  | 'Arraial do Cabo'
+  | 'Cabo Frio'
+  | 'Casimiro de Abreu'
+  | 'Iguaba Grande'
+  | 'Rio das Ostras'
+  | 'Rio de Janeiro'
+  | 'São Pedro da Aldeia'
+  | 'Saquarema'
+  | 'Silva Jardim'
+  | 'Niterói';
 
 export interface Offer {
   id: string;
@@ -23,6 +36,7 @@ export interface Offer {
   validFrom?: string;
   validUntil: string;
   merchantName: string;
+  city: OfferCity;
   discount: string;
   /** Intenção do comerciante: publicar quando a vigência permitir (pausar = false). */
   publishIntent: boolean;

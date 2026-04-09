@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useId } from 'react';
 import { FirebaseError } from 'firebase/app';
-import { Offer, Coupon, UserRole, CompanyUser, Category, ConsumerStat, ConsumerEmailAggregate } from './types';
-import { getPublicOffers, subscribePublicOffers, getMerchantOffers, getMerchantConsumerDashboard, createOffer, updateOffer, deleteOffer, generateCoupon, validateCoupon, uploadImage, countCouponsForOffer, getOfferCouponLimitInfo, requestOfferAutoTranslation, toCanonicalYmd, computePersistedIsActiveFromOffer, COUPON_SOLD_OUT, COUPON_ALREADY_CLAIMED, COUPON_INVALID_EMAIL, COUPON_OFFER_NOT_YET_VALID, COUPON_VALIDATE_WRITE_FAILED } from './services/dataService';
+import { Offer, Coupon, UserRole, CompanyUser, Category, OfferCity, ConsumerStat, ConsumerEmailAggregate } from './types';
+import { getPublicOffers, subscribePublicOffers, getMerchantOffers, getMerchantConsumerDashboard, createOffer, updateOffer, deleteOffer, generateCoupon, validateCoupon, uploadImage, countCouponsForOffer, getOfferCouponLimitInfo, requestOfferAutoTranslation, toCanonicalYmd, computePersistedIsActiveFromOffer, COUPON_SOLD_OUT, COUPON_ALREADY_CLAIMED, COUPON_INVALID_EMAIL, COUPON_OFFER_NOT_YET_VALID, COUPON_VALIDATE_WRITE_FAILED, COSTA_DO_SOL_AND_METRO_CITIES, LEGACY_DEFAULT_CITY } from './services/dataService';
 import type { OfferUpdateInput } from './services/dataService';
 import { safeImageUrl } from './utils/safeUrl';
 import { subscribeToAuthChanges, logoutCompany, updateCompanyDisplayName } from './services/authService';
@@ -375,6 +375,7 @@ const AdminPanel = ({
     validFrom: '',
     validUntil: '',
     imageUrl: '',
+    city: LEGACY_DEFAULT_CITY,
     publishIntent: true,
     categories: []
   });
@@ -426,6 +427,10 @@ const AdminPanel = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     let builtDiscount: string | null = null;
+    if (!newOffer.city) {
+      alert(t.cityRequired);
+      return;
+    }
     if (!editingId) {
       if (!newOffer.title?.trim()) return;
       if (!newOffer.categories?.length) {
@@ -539,6 +544,7 @@ const AdminPanel = ({
         validFrom: '',
         validUntil: '',
         imageUrl: '',
+        city: LEGACY_DEFAULT_CITY,
         publishIntent: true,
         categories: []
       });
@@ -628,12 +634,14 @@ const AdminPanel = ({
       validFrom: '',
       validUntil: '',
       imageUrl: '',
+      city: LEGACY_DEFAULT_CITY,
       publishIntent: true,
       categories: []
     });
   };
 
   const categoriesList: Category[] = ['bar', 'restaurant', 'experience', 'lodging', 'other'];
+  const citiesList = COSTA_DO_SOL_AND_METRO_CITIES;
 
   const activeOffersList = offers.filter((o) => !isOfferArchived(o));
   const archivedOffersList = offers.filter((o) => isOfferArchived(o));
@@ -700,6 +708,7 @@ const AdminPanel = ({
                 validFrom: '',
                 validUntil: '',
                 imageUrl: '',
+                city: LEGACY_DEFAULT_CITY,
                 publishIntent: true,
                 categories: []
               });
@@ -957,6 +966,24 @@ const AdminPanel = ({
               </fieldset>
             )}
             
+            <div className="flex flex-col md:col-span-2">
+              <label className="text-xs text-gray-500 mb-1 ml-1">{t.placeholders.city}</label>
+              <select
+                required
+                className="border p-2 rounded w-full"
+                value={newOffer.city || LEGACY_DEFAULT_CITY}
+                onChange={(e) =>
+                  setNewOffer({ ...newOffer, city: e.target.value as OfferCity })
+                }
+              >
+                {citiesList.map((city) => (
+                  <option key={city} value={city}>
+                    {city}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="flex flex-col">
                 <label className="text-xs text-gray-500 mb-1 ml-1">{t.placeholders.validFrom}</label>
@@ -1567,12 +1594,14 @@ const App = () => {
     }
   }, []);
   const [selectedCategories, setSelectedCategories] = useState<Category[]>([]);
+  const [selectedCities, setSelectedCities] = useState<OfferCity[]>([]);
   const t = translations[lang];
   const tCats = translations[lang].categories;
 
   /** Trocar PT/EN/ES não deve manter filtro de categoria “escondido” (ex.: só Bar) e sumir com ofertas de outras categorias. */
   useEffect(() => {
     setSelectedCategories([]);
+    setSelectedCities([]);
   }, [lang]);
 
   useEffect(() => {
@@ -1635,6 +1664,7 @@ const App = () => {
     if (from && from > now) return false;
     // Esgotado / pausada / vigência / limite: mesma regra que persiste isActive (evita doc desatualizado na query).
     if (!computePersistedIsActiveFromOffer(offer)) return false;
+    if (selectedCities.length > 0 && !selectedCities.includes(offer.city)) return false;
     if (selectedCategories.length > 0) {
       if (!offer.categories || !offer.categories.some(c => selectedCategories.includes(c))) return false;
     }
@@ -1648,8 +1678,16 @@ const App = () => {
       setSelectedCategories(prev => [...prev, cat]);
     }
   };
+  const toggleCityFilter = (city: OfferCity) => {
+    if (selectedCities.includes(city)) {
+      setSelectedCities(prev => prev.filter(c => c !== city));
+    } else {
+      setSelectedCities(prev => [...prev, city]);
+    }
+  };
 
   const categoriesList: Category[] = ['bar', 'restaurant', 'experience', 'lodging', 'other'];
+  const citiesList = COSTA_DO_SOL_AND_METRO_CITIES;
 
   return (
     <div className="min-h-screen pb-20 md:pb-0 font-sans text-gray-800 bg-sea-50">
@@ -1684,6 +1722,24 @@ const App = () => {
                     className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${selectedCategories.includes(cat) ? 'bg-sea-500 text-white shadow-md' : 'bg-white text-gray-500 hover:bg-gray-50 border border-gray-200'}`}
                   >
                     {tCats[cat]}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex flex-wrap justify-center gap-3 mb-8 animate-fadeIn">
+                <button
+                  onClick={() => setSelectedCities([])}
+                  className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${selectedCities.length === 0 ? 'bg-sea-600 text-white shadow-md' : 'bg-white text-gray-500 hover:bg-gray-50 border border-gray-200'}`}
+                >
+                  {t.home.allCities}
+                </button>
+                {citiesList.map(city => (
+                  <button
+                    key={city}
+                    onClick={() => toggleCityFilter(city)}
+                    className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${selectedCities.includes(city) ? 'bg-sea-500 text-white shadow-md' : 'bg-white text-gray-500 hover:bg-gray-50 border border-gray-200'}`}
+                  >
+                    {city}
                   </button>
                 ))}
               </div>

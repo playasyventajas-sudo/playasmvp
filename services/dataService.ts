@@ -19,6 +19,7 @@ import { getFunctions, httpsCallable } from "firebase/functions";
 import { app, db, storage, isFirebaseConfigured } from "./firebaseConfig";
 import {
   Offer,
+  OfferCity,
   Coupon,
   ConsumerStat,
   ConsumerEmailAggregate,
@@ -52,6 +53,21 @@ let MOCK_COUPONS: Coupon[] = [];
 
 /** Região das Cloud Functions (deve coincidir com `functions/translateOffer.js`). */
 const FUNCTIONS_REGION = "southamerica-east1";
+export const COSTA_DO_SOL_AND_METRO_CITIES: readonly OfferCity[] = [
+  "Araruama",
+  "Armação dos Búzios",
+  "Arraial do Cabo",
+  "Cabo Frio",
+  "Casimiro de Abreu",
+  "Iguaba Grande",
+  "Rio das Ostras",
+  "São Pedro da Aldeia",
+  "Saquarema",
+  "Silva Jardim",
+  "Rio de Janeiro",
+  "Niterói"
+] as const;
+export const LEGACY_DEFAULT_CITY: OfferCity = "Cabo Frio";
 
 /** Erro quando a oferta esgotou cupons ou está inativa (turista). */
 export const COUPON_SOLD_OUT = "COUPON_SOLD_OUT";
@@ -76,6 +92,12 @@ function parseBoolishField(v: unknown): boolean | undefined {
   if (typeof v === "string") return v === "true" || v === "1";
   if (typeof v === "number") return v !== 0;
   return undefined;
+}
+
+function normalizeOfferCity(v: unknown): OfferCity | undefined {
+  if (typeof v !== "string") return undefined;
+  const city = v.trim() as OfferCity;
+  return COSTA_DO_SOL_AND_METRO_CITIES.includes(city) ? city : undefined;
 }
 
 /** Valor efetivo gravado no Firestore: intenção + vigência local + limite de cupons. */
@@ -216,6 +238,7 @@ export function computePersistedIsActiveFromOffer(o: Offer): boolean {
 /** Normaliza oferta do Firestore (datas, publishIntent legado, isActive efetivo). */
 export function normalizeOfferFromFirestore(id: string, data: Record<string, unknown>): Offer {
   const o = { id, ...data } as Offer;
+  o.city = normalizeOfferCity(data.city) ?? LEGACY_DEFAULT_CITY;
   const mc = coerceNumberField(data.maxCoupons);
   if (mc !== undefined) o.maxCoupons = mc;
   const ci = coerceNumberField(data.couponsIssued);
@@ -433,9 +456,11 @@ export const createOffer = async (
     maxCoupons: hasLimit ? maxRaw : undefined
   });
   const i18n = clipOfferI18nFields(rest);
+  const city = normalizeOfferCity(rest.city) ?? LEGACY_DEFAULT_CITY;
   const restClipped = {
     ...rest,
     ...i18n,
+    city,
     validFrom: vfCanon || undefined,
     validUntil: vuCanon,
     title: clipString((rest.title ?? "").trim(), OFFER_TITLE_MAX),
@@ -489,6 +514,7 @@ function omitUndefined<T extends Record<string, unknown>>(obj: T): Record<string
 
 /** Após criar a oferta, só vigência e limite de cupons (e publishIntent; isActive é recalculado) podem ser alterados pelo painel. */
 const OFFER_UPDATE_ALLOWED: (keyof Offer)[] = [
+  "city",
   "validFrom",
   "validUntil",
   "maxCoupons",
@@ -519,6 +545,9 @@ export const updateOffer = async (id: string, offer: OfferUpdateInput): Promise<
   delete patch.discount;
   delete patch.isActive;
   patch = pickAllowedOfferPatch(patch);
+  if (patch.city !== undefined) {
+    patch.city = normalizeOfferCity(patch.city) ?? LEGACY_DEFAULT_CITY;
+  }
   if (syncCouponsIssued != null) {
     patch = { ...patch, couponsIssued: syncCouponsIssued };
   }

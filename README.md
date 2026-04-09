@@ -72,11 +72,13 @@ Sem `.env.local`, o app usa **modo demo** (mock em memória, sem dados reais).
 | `npm run build` | Build de produção → pasta `dist/` |
 | `npm run deploy:playas` | Build + `firebase deploy` (Hosting, regras Firestore, **índices** Firestore, Storage e **Cloud Functions**) no projeto `playas-e-ventajas` |
 | `npm run deploy:push` | `deploy:playas` + `git push` para o remote `origin` ([playasyventajas-sudo/playasmvp](https://github.com/playasyventajas-sudo/playasmvp), branch `main`) |
+| `npm run backfill:city` | Backfill de `offers.city` para ofertas antigas sem cidade (padrão: `Cabo Frio`) |
 
 Deploy exige **Firebase CLI** (`npm i -g firebase-tools`) e permissão no projeto. Plano **Blaze** pode ser necessário para Functions com APIs Google.
 
 ### Vitrine pública (home)
 
+- **Filtro por cidade (multi-seleção):** além das categorias, a home oferece filtro de cidades com seleção de uma ou várias. Cidades disponíveis (fonte única no código): `Araruama`, `Armação dos Búzios`, `Arraial do Cabo`, `Cabo Frio`, `Casimiro de Abreu`, `Iguaba Grande`, `Rio das Ostras`, `São Pedro da Aldeia`, `Saquarema`, `Silva Jardim`, `Rio de Janeiro`, `Niterói`.
 - **Filtro de categoria** (Bar, Restaurante, etc.): ao **mudar o idioma** (PT/EN/ES), o app **zera** o filtro e volta para **“Todos”**, para não parecer que ofertas “sumiram” só por categoria ativa.
 - **`validUntil`**: ofertas com fim de vigência já passado não aparecem (data local `YYYY-MM-DD`).
 - **`validFrom` futuro**: se a oferta começa amanhã, **só entra na lista no dia de início** (inclusive). O painel do comerciante continua enxergando a oferta como ativa até lá; cupom segue bloqueado até a data (`generateCoupon`).
@@ -86,6 +88,7 @@ Deploy exige **Firebase CLI** (`npm i -g firebase-tools`) e permissão no projet
 ### Painel do comerciante (`countCouponsForOffer`)
 
 - Ao **ativar limite de cupons** numa oferta que antes não tinha, o app conta cupons existentes com query em `coupons` por **`offerId` + `merchantUid`**. Só `offerId` não basta com as regras atuais (leitura exige `merchantUid == auth.uid`), senão o Firestore retorna **`permission-denied`** e o painel parece “travado”. O índice composto está em `firestore.indexes.json`.
+- **Cidade obrigatória no formulário**: ao criar/editar oferta, a empresa seleciona a cidade em input dedicado (mesma lista da home). Para legados sem `city`, a normalização aplica fallback `Cabo Frio` até o backfill persistir o campo.
 
 ### Scanner / validar cupom (comerciante logado)
 
@@ -146,7 +149,7 @@ Use quando algo falhar em produção ou após editar ofertas no Console.
 
 3. **Oferta errada na vitrine** (some cedo, não some quando esgotou, contador estranho)  
    - Rode `npm run recompute:isactive` para alinhar `isActive` no Firestore com vigência + limite de cupons.  
-   - Confira no doc: `validUntil`, `validFrom`, `publishIntent`, `maxCoupons`, `couponsIssued`.
+   - Confira no doc: `city`, `validUntil`, `validFrom`, `publishIntent`, `maxCoupons`, `couponsIssued`.
 
 4. **Deploy**  
    - Após mudar regras ou front que afete visitantes: `npm run deploy:playas` na raiz do repositório.

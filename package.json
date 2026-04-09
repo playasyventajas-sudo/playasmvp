@@ -15,6 +15,7 @@
     "cleanup:qa": "node scripts/delete-qa-test-data.mjs",
     "cleanup:qa:login": "node scripts/delete-qa-with-firebase-user-token.mjs",
     "backfill:isactive": "node scripts/backfill-offers-isactive.mjs",
+    "backfill:city": "node scripts/backfill-offers-city.mjs",
     "recompute:isactive": "node scripts/recompute-offers-isactive.mjs"
   },
   "dependencies": {
