@@ -73,6 +73,7 @@ Sem `.env.local`, o app usa **modo demo** (mock em memória, sem dados reais).
 | `npm run deploy:playas` | Build + `firebase deploy` (Hosting, regras Firestore, **índices** Firestore, Storage e **Cloud Functions**) no projeto `playas-e-ventajas` |
 | `npm run deploy:push` | `deploy:playas` + `git push` para o remote `origin` ([playasyventajas-sudo/playasmvp](https://github.com/playasyventajas-sudo/playasmvp), branch `main`) |
 | `npm run backfill:city` | Backfill de `offers.city` para ofertas antigas sem cidade (padrão: `Cabo Frio`) |
+| `npm run diagnose:offer` | Diagnóstico **somente leitura** no Firestore (oferta por substring no título, ex.: `TITLE_SUBSTRING=Alpinismo`); ver [docs/DIAGNOSTICO_CUPOM_PERMISSAO.md](docs/DIAGNOSTICO_CUPOM_PERMISSAO.md) |
 
 Deploy exige **Firebase CLI** (`npm i -g firebase-tools`) e permissão no projeto. Plano **Blaze** pode ser necessário para Functions com APIs Google.
 

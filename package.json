@@ -16,7 +16,8 @@
     "cleanup:qa:login": "node scripts/delete-qa-with-firebase-user-token.mjs",
     "backfill:isactive": "node scripts/backfill-offers-isactive.mjs",
     "backfill:city": "node scripts/backfill-offers-city.mjs",
-    "recompute:isactive": "node scripts/recompute-offers-isactive.mjs"
+    "recompute:isactive": "node scripts/recompute-offers-isactive.mjs",
+    "diagnose:offer": "node scripts/diagnose-offer-coupon.mjs"
   },
   "dependencies": {
     "firebase": "^12.8.0",
