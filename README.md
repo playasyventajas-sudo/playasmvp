@@ -165,6 +165,19 @@ Use quando algo falhar em produção ou após editar ofertas no Console.
 
 ---
 
+## GitHub (código-fonte e push)
+
+| Item | Detalhe |
+|------|---------|
+| **Repositório** | [github.com/playasyventajas-sudo/playasmvp](https://github.com/playasyventajas-sudo/playasmvp) |
+| **Branch principal** | `main` (é o `origin` deste clone) |
+
+- **`git push` com erro 403** (“Permission denied” para outra conta): no Mac, com **GitHub CLI** (`gh`) e duas contas logadas, defina a conta **Playas** como ativa antes do push:  
+  `gh auth switch --user playasyventajas-sudo --hostname github.com`  
+  Depois: `git push origin main`. Para voltar a outra conta no mesmo host: `gh auth switch --user <usuario> --hostname github.com`.
+
+---
+
 ## Licença / uso
 
 Uso interno do produto; ajustar conforme política da equipe.
