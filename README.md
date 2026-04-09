@@ -74,6 +74,7 @@ Sem `.env.local`, o app usa **modo demo** (mock em memória, sem dados reais).
 | `npm run deploy:push` | `deploy:playas` + `git push` para o remote `origin` ([playasyventajas-sudo/playasmvp](https://github.com/playasyventajas-sudo/playasmvp), branch `main`) |
 | `npm run backfill:city` | Backfill de `offers.city` para ofertas antigas sem cidade (padrão: `Cabo Frio`) |
 | `npm run diagnose:offer` | Diagnóstico **somente leitura** no Firestore (oferta por substring no título, ex.: `TITLE_SUBSTRING=Alpinismo`); ver [docs/DIAGNOSTICO_CUPOM_PERMISSAO.md](docs/DIAGNOSTICO_CUPOM_PERMISSAO.md) |
+| `npm run cleanup:offer-children` | Apaga cupons + `couponLocks` de um `OFFER_ID` (Firebase CLI com permissão no projeto). Útil após remover oferta manualmente ou para limpar órfãos. |
 
 Deploy exige **Firebase CLI** (`npm i -g firebase-tools`) e permissão no projeto. Plano **Blaze** pode ser necessário para Functions com APIs Google.
 
@@ -111,6 +112,7 @@ Deploy exige **Firebase CLI** (`npm i -g firebase-tools`) e permissão no projet
 - **2026-04-07/09 (produção):** regras `coupons`: `get` com `resource == null` para ID inexistente (scanner/manual); `list` com `merchantUid`; índice composto `offerId`+`merchantUid` em `firestore.indexes.json`; painel `countCouponsForOffer` com filtro `merchantUid`; validação de cupom separa **cupom de outro comerciante** vs **falha ao gravar USED** (`COUPON_VALIDATE_WRITE_FAILED` / `validateWriteFailed` em PT/EN/ES); home reseta filtro de categoria ao mudar idioma; filtro de **cidade** na home (menu suspenso + multi-seleção; chave `home.cityFilterSelected` em PT/EN/ES) + cidade obrigatória na oferta; textos de **Como funciona / Termos / Privacidade** atualizados em PT/EN/ES com regra de cidade.
 - **2026-04-09 (Cloud Functions):** runtime **Node.js 22** (`functions/package.json` → `engines.node`; `firebase.json` → `functions.runtime`: `nodejs22`), `firebase-functions` e `firebase-admin` atualizados em `functions/` — evita aviso de depreciação do Node 20 no deploy.
 - **2026-04-10 (Firestore rules):** `isWholeNumberLike` / `toWholeOrNeg1` alinhados ao `coerceNumberField` do app (strings com espaços, etc.) para o **update anônimo** em `offers` na transação de cupom — evita `permission-denied` no `Commit` quando `couponsIssued` legado na oferta não batia com o que a regra lia como “emitido”.
+- **2026-04-10 (Firestore rules, 2ª):** `offerIssuedWhole` passou a usar só `toWholeOrNeg1 >= 0` (sem `isWholeNumberLike` duplicado); `coupons.create` aceita `createdAt` como `int` ou `float` (SDK pode variar). **Regra** `npm run cleanup:offer-children` com `OFFER_ID` para limpar cupons/locks após apagar oferta de teste via CLI.
 - **Smoke manual sugerido:** home **PT → EN → ES** (chips “Todos”); scanner ou código manual com cupom **da mesma conta** (`merchantUid` = `auth.uid` no doc `coupons/{id}`).
 - **Histórico:** bateria anterior **18/18** (6 ofertas ativas × 3 idiomas), e-mails fictícios únicos.
 - Comportamento esperado: último cupom inativa a oferta (`isActive: false`); visitante respeita limite e vigência.
