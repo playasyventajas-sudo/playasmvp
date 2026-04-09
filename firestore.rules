@@ -3,18 +3,24 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // SDK / Console / import às vezes gravam números como float (5.0) ou string ("5").
+    // O app (dataService) usa parseInt(trim(s)) em strings; a regra precisa aceitar os mesmos
+    // casos — senão offerIssuedWhole vira 0 e o update anônimo exige couponsIssued == 1 em vez de N+1 → 403.
     function isWholeNumberLike(n) {
       return n is int
         || (n is float && int(n) == n)
-        // Também aceita strings legadas com .0 (ex.: "9.0", "8.000")
-        || (n is string && n.matches('^-?[0-9]+([.][0]+)?$'));
+        || (n is string && n.matches('^-?[0-9]+([.][0]+)?$'))
+        || (n is string && n.matches('^\\s*-?[0-9]+([.][0]+)?\\s*$') && float(n) == int(float(n)));
     }
     function toWholeOrNeg1(n) {
       return n is int
         ? n
         : (n is float && int(n) == n
             ? int(n)
-            : (n is string && n.matches('^-?[0-9]+([.][0]+)?$') ? int(n) : -1));
+            : (n is string && n.matches('^-?[0-9]+([.][0]+)?$')
+                ? int(n)
+                : (n is string && n.matches('^\\s*-?[0-9]+([.][0]+)?\\s*$') && float(n) == int(float(n))
+                    ? int(float(n))
+                    : -1)));
     }
     function offerMaxCouponsWhole(data) {
       return data.keys().hasAny(['maxCoupons']) && toWholeOrNeg1(data.maxCoupons) >= 5
