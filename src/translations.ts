@@ -50,7 +50,8 @@ export const translations = {
       noOffers: "Nenhuma oferta encontrada para este período.",
       loadingOffers: "Carregando ofertas…",
       clearFilters: "Limpar filtros para ver todas as ofertas",
-      allCities: "Todas as cidades"
+      allCities: "Todas as cidades",
+      cityFilterSelected: "{n} selecionadas"
     },
     offerCard: {
       validUntil: "Válido até",
@@ -330,7 +331,8 @@ export const translations = {
       noOffers: "No offers found for this date range.",
       loadingOffers: "Loading offers…",
       clearFilters: "Clear filters to see all offers",
-      allCities: "All cities"
+      allCities: "All cities",
+      cityFilterSelected: "{n} selected"
     },
     offerCard: {
       validUntil: "Valid until",
@@ -606,7 +608,8 @@ export const translations = {
       noOffers: "No se encontraron ofertas para este período.",
       loadingOffers: "Cargando ofertas…",
       clearFilters: "Limpiar filtros para ver todas las ofertas",
-      allCities: "Todas las ciudades"
+      allCities: "Todas las ciudades",
+      cityFilterSelected: "{n} seleccionadas"
     },
     offerCard: {
       validUntil: "Válido hasta",

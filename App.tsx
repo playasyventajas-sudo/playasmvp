@@ -1595,6 +1595,8 @@ const App = () => {
   }, []);
   const [selectedCategories, setSelectedCategories] = useState<Category[]>([]);
   const [selectedCities, setSelectedCities] = useState<OfferCity[]>([]);
+  const [cityFilterOpen, setCityFilterOpen] = useState(false);
+  const cityFilterWrapRef = useRef<HTMLDivElement>(null);
   const t = translations[lang];
   const tCats = translations[lang].categories;
 
@@ -1602,7 +1604,19 @@ const App = () => {
   useEffect(() => {
     setSelectedCategories([]);
     setSelectedCities([]);
+    setCityFilterOpen(false);
   }, [lang]);
+
+  useEffect(() => {
+    if (!cityFilterOpen) return;
+    const close = (e: MouseEvent) => {
+      if (cityFilterWrapRef.current && !cityFilterWrapRef.current.contains(e.target as Node)) {
+        setCityFilterOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [cityFilterOpen]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1726,22 +1740,61 @@ const App = () => {
                 ))}
               </div>
 
-              <div className="flex flex-wrap justify-center gap-3 mb-8 animate-fadeIn">
+              <div
+                ref={cityFilterWrapRef}
+                className="relative flex justify-center mb-8 animate-fadeIn"
+              >
                 <button
-                  onClick={() => setSelectedCities([])}
-                  className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${selectedCities.length === 0 ? 'bg-sea-600 text-white shadow-md' : 'bg-white text-gray-500 hover:bg-gray-50 border border-gray-200'}`}
+                  type="button"
+                  onClick={() => setCityFilterOpen((o) => !o)}
+                  className={`px-4 py-2 rounded-full text-sm font-bold transition-all flex items-center gap-2 border ${
+                    selectedCities.length === 0
+                      ? "bg-sea-600 text-white shadow-md border-sea-600"
+                      : "bg-sea-500 text-white shadow-md border-sea-500"
+                  }`}
+                  aria-expanded={cityFilterOpen}
+                  aria-haspopup="listbox"
                 >
-                  {t.home.allCities}
+                  {selectedCities.length === 0
+                    ? t.home.allCities
+                    : t.home.cityFilterSelected.replace("{n}", String(selectedCities.length))}
+                  <span className="text-[10px] opacity-90" aria-hidden>
+                    {cityFilterOpen ? "▲" : "▼"}
+                  </span>
                 </button>
-                {citiesList.map(city => (
-                  <button
-                    key={city}
-                    onClick={() => toggleCityFilter(city)}
-                    className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${selectedCities.includes(city) ? 'bg-sea-500 text-white shadow-md' : 'bg-white text-gray-500 hover:bg-gray-50 border border-gray-200'}`}
+                {cityFilterOpen && (
+                  <div
+                    role="listbox"
+                    aria-multiselectable="true"
+                    className="absolute top-full left-1/2 z-30 mt-2 w-[min(100vw-2rem,20rem)] min-w-[240px] -translate-x-1/2 rounded-lg border border-gray-200 bg-white py-2 text-left shadow-lg max-h-[min(70vh,16rem)] overflow-y-auto"
                   >
-                    {city}
-                  </button>
-                ))}
+                    <button
+                      type="button"
+                      role="option"
+                      onClick={() => setSelectedCities([])}
+                      className={`w-full px-4 py-2.5 text-left text-sm font-bold hover:bg-gray-50 ${
+                        selectedCities.length === 0 ? "bg-sea-50 text-sea-800" : "text-gray-700"
+                      }`}
+                    >
+                      {t.home.allCities}
+                    </button>
+                    <div className="my-1 border-t border-gray-100" />
+                    {citiesList.map((city) => (
+                      <label
+                        key={city}
+                        className="flex cursor-pointer items-center gap-2 px-4 py-2 text-sm text-gray-800 hover:bg-gray-50"
+                      >
+                        <input
+                          type="checkbox"
+                          className="rounded border-gray-300 text-sea-600 focus:ring-sea-500"
+                          checked={selectedCities.includes(city)}
+                          onChange={() => toggleCityFilter(city)}
+                        />
+                        <span>{city}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
